@@ -1,0 +1,26 @@
+/* Remove default Ant Design table borders */
+.custom-table-borders .ant-table,
+.custom-table-borders .ant-table-container,
+.custom-table-borders .ant-table-content,
+.custom-table-borders .ant-table-cell,
+.custom-table-borders .ant-table-thead > tr > th,
+.custom-table-borders .ant-table-tbody > tr > td {
+  border: none !important;
+  background-clip: padding-box;
+}
+
+/* Apply custom 0.5px #F0F0F0 borders to all cells */
+.custom-table-borders .ant-table-thead > tr > th,
+.custom-table-borders .ant-table-tbody > tr > td {
+  border: 0.5px solid #F0F0F0 !important;
+  box-sizing: border-box;
+}
+
+.custom-table-borders .ant-table-thead > tr > th:not(:last-child),
+.custom-table-borders .ant-table-tbody > tr > td:not(:last-child) {
+  border-right: 0.5px solid #F0F0F0 !important;
+}
+
+.custom-table-borders .ant-table-tbody > tr:not(:last-child) > td {
+  border-bottom: 0.5px solid #F0F0F0 !important;
+} 
