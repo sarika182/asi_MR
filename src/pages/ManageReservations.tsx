@@ -45,12 +45,6 @@ import PrepaidIcon from '../assets/Icons/prepaid.svg';
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
 
-const tabItems = [
-  { key: '1', label: 'All Reservations', children: null },
-  { key: '2', label: 'Courtesy Holds', children: null },
-  { key: '3', label: 'Unposted Reservations', children: null },
-];
-
 const iconButtonStyle: React.CSSProperties = {
   width: 40,
   height: 40,
@@ -100,6 +94,13 @@ const activeIconStyle: React.CSSProperties = {
 // Table columns and data for Manage Reservations
 const columns = [
   {
+    title: '',
+    dataIndex: 'checkbox',
+    key: 'checkbox',
+    width: 48,
+    render: (_: any, record: any) => null, // handled by rowSelection
+  },
+  {
     title: 'Res. ID',
     dataIndex: 'resId',
     key: 'resId',
@@ -122,25 +123,29 @@ const columns = [
     },
   },
   {
+    title: 'Type',
+    dataIndex: 'type',
+    key: 'type',
+    width: 80,
+    render: (value: string) => value,
+  },
+  {
+    title: 'Res. Date',
+    dataIndex: 'resDate',
+    key: 'resDate',
+    width: 120,
+    render: (value: string) => value,
+  },
+  {
     title: 'Check-In',
     dataIndex: 'checkIn',
     key: 'checkIn',
     width: 130,
-    fixed: 'left' as 'left',
-    sorter: (a: any, b: any) => {
-      const dateA = a.checkIn.split('\n')[0];
-      const dateB = b.checkIn.split('\n')[0];
-      return new Date(dateA).getTime() - new Date(dateB).getTime();
-    },
     render: (value: string) => {
       const [date, time] = value.split('\n');
-      // Remove any extra year or comma from the date
-      const datePart = date.replace(/,?\s*2025/g, '').replace(/,?\s*$/, '');
-      // Add the year only once
-      const formattedDate = `${datePart}, 2025`;
       return (
         <span>
-          {formattedDate}<br />
+          {date}<br />
           <span className="checkinout-time" style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)' }}>{time}</span>
         </span>
       );
@@ -151,19 +156,11 @@ const columns = [
     dataIndex: 'checkOut',
     key: 'checkOut',
     width: 130,
-    fixed: 'left' as 'left',
-    sorter: (a: any, b: any) => {
-      const dateA = a.checkOut.split('\n')[0];
-      const dateB = b.checkOut.split('\n')[0];
-      return new Date(dateA).getTime() - new Date(dateB).getTime();
-    },
     render: (value: string) => {
       const [date, time] = value.split('\n');
-      const datePart = date.replace(/\s*\(.*\)/, '');
-      const formattedDate = `${datePart}, 2025`;
       return (
         <span>
-          {formattedDate}<br />
+          {date}<br />
           <span className="checkinout-time" style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)' }}>{time}</span>
         </span>
       );
@@ -174,23 +171,13 @@ const columns = [
     dataIndex: 'poc',
     key: 'poc',
     width: 180,
-    fixed: 'left' as 'left',
-    sorter: (a: any, b: any) => {
-      const nameA = a.poc?.props?.children?.[0] || '';
-      const nameB = b.poc?.props?.children?.[0] || '';
-      return String(nameA).localeCompare(String(nameB));
-    },
+    render: (value: any) => value,
   },
   {
     title: 'Status',
     dataIndex: 'reservation',
     key: 'reservation',
-    width: 160,
-    sorter: (a: any, b: any) => {
-      const statusA = a.reservationStatus || '';
-      const statusB = b.reservationStatus || '';
-      return String(statusA).localeCompare(String(statusB));
-    },
+    width: 120,
     render: (value: any, record: any) => {
       let status = '';
       if (typeof value === 'string') {
@@ -212,123 +199,63 @@ const columns = [
     },
   },
   {
-    title: (
-      <Tooltip title="Room/Space Name" placement="top">
-        Room/Space Name
-      </Tooltip>
-    ),
+    title: 'Room/Space Name',
     dataIndex: 'roomName',
     key: 'roomName',
-    width: 160,
+    width: 140,
   },
   {
-    title: (
-      <Tooltip title="Room/Space Type" placement="top">
-        Room/Space Type
-      </Tooltip>
-    ),
+    title: 'Room/Space Type',
     dataIndex: 'roomType',
     key: 'roomType',
     width: 140,
   },
   {
-    title: (
-      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        Total Charges ($)
-      </span>
-    ),
+    title: 'Business Source',
+    dataIndex: 'businessSource',
+    key: 'businessSource',
+    width: 160,
+    render: (value: any, record: any, idx: number) => value,
+  },
+  {
+    title: 'Cancellation Policy',
+    dataIndex: 'cancellationPolicy',
+    key: 'cancellationPolicy',
+    width: 140,
+  },
+  {
+    title: 'Total Charges ($)',
     dataIndex: 'totalCharges',
     key: 'totalCharges',
-    width: 180, // Increased width for Total Charges($)
-    sorter: (a: any, b: any) => parseFloat(a.totalCharges) - parseFloat(b.totalCharges),
+    width: 120,
+  },
+  {
+    title: 'Amount Paid ($)',
+    dataIndex: 'amountPaid',
+    key: 'amountPaid',
+    width: 120,
   },
   {
     title: 'Balance ($)',
     dataIndex: 'balance',
     key: 'balance',
-    width: 140,
-    sorter: (a: any, b: any) => parseFloat(a.balance) - parseFloat(b.balance),
-  },
-  {
-    title: (
-      <Tooltip title="Business Source" placement="top">
-        Business Source
-      </Tooltip>
-    ),
-    dataIndex: 'businessSource',
-    key: 'businessSource',
-    width: 160,
-    render: (value: any, record: any, idx: number) => {
-      // Show CRS ID below for Booking.com or Expedia
-      const businessSourceName = typeof value === 'string' ? value : (value?.props?.children?.[0] || '');
-      const crsIds = ['4782992', '9493992', '5829102', '3920192', '1203981', '8492012', '2394810', '4920192', '1203982', '8492013'];
-      // Loyalty program icon for 1st row (idx === 0)
-      if (idx === 0) {
-          return (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 0 }}>
-              <span>{businessSourceName}</span>
-              <span style={{ color: '#888', fontSize: 13, lineHeight: '18px', marginTop: 0 }}>{crsIds[idx % crsIds.length]}</span>
-                </span>
-            <Tooltip title="Genius">
-              <img src={LoyaltyProgramIcon} alt="Loyalty Program" style={{ width: 16, height: 16, marginLeft: 8 }} />
-            </Tooltip>
-          </span>
-        );
-      }
-      // Show CRS ID below for Booking.com or Expedia
-      if (businessSourceName === 'Booking.com' || businessSourceName === 'Expedia') {
-        return (
-          <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 0 }}>
-            <span>{businessSourceName}</span>
-            <span style={{ color: '#888', fontSize: 13, lineHeight: '18px', marginTop: 0 }}>{crsIds[idx % crsIds.length]}</span>
-          </span>
-        );
-      }
-      // Loyalty program icon for 4th row
-      if (idx === 3) {
-        return (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <img src={LoyaltyProgramIcon} alt="Loyalty Program" style={{ width: 16, height: 16 }} />
-            {value}
-              </span>
-        );
-      }
-      return value;
-    },
-  },
-  {
-    title: (
-      <Tooltip title="Cancellation Policy" placement="top">
-        Cancellation Policy
-      </Tooltip>
-    ),
-    dataIndex: 'cancellationPolicy',
-    key: 'cancellationPolicy',
-    width: 160,
-  },
-  {
-    title: 'Hold Release Date',
-    dataIndex: 'holdReleaseDate',
-    key: 'holdReleaseDate',
-    width: 180, // Increased width
-    render: (value: string) => {
-      if (!value) return '';
-      const datePart = value.replace(/\s*\(.*\)/, '');
-      const formattedDate = `${datePart}, 2025`;
-      return <span>{formattedDate}</span>;
-    },
-    sorter: (a: any, b: any) => {
-      const dateA = a.holdReleaseDate.replace(/\s*\(.*\)/, '') + ', 2025';
-      const dateB = b.holdReleaseDate.replace(/\s*\(.*\)/, '') + ', 2025';
-      return dayjs(dateA, 'MMM D, YYYY').valueOf() - dayjs(dateB, 'MMM D, YYYY').valueOf();
-    },
+    width: 120,
   },
   {
     title: '',
     key: 'actions',
     fixed: 'right' as 'right',
     width: 64,
+    render: (_: any, record: any) => (
+      <Dropdown
+        overlay={<Menu><Menu.Item>Action</Menu.Item></Menu>}
+        trigger={["click"]}
+        placement="bottomRight"
+        arrow
+      >
+        <Button type="text" icon={<span style={{ fontSize: 20 }}>⋮</span>} />
+      </Dropdown>
+    ),
   },
 ];
 
@@ -360,6 +287,7 @@ const data = [
   {
     key: '1',
     resId: '23456723',
+    resDate: 'Dec 21, 2024',
     checkIn: `${checkInDates[0]}\n03:00 PM`,
     checkOut: 'Jan 27 (Tue)\n11:00 AM',
     poc: (<div>Catherine Stever<br /><span style={{ color: '#888' }}>catherine@azure.com</span></div>),
@@ -370,10 +298,12 @@ const data = [
     balance: '0.00',
     businessSource: 'Booking.com',
     cancellationPolicy: cancellationPolicies[0],
+    amountPaid: '100.00',
   },
   {
     key: '2',
     resId: '27892001',
+    resDate: 'Dec 21, 2024',
     checkIn: `${checkInDates[1]}\n03:00 PM`,
     checkOut: 'Jan 27 (Tue)\n11:00 AM',
     poc: (<div>Daniel Rodriguez<br /><span style={{ color: '#888' }}>daniel@circle.com</span></div>),
@@ -384,10 +314,12 @@ const data = [
     balance: '0.00',
     businessSource: 'Expedia',
     cancellationPolicy: cancellationPolicies[1],
+    amountPaid: '100.00',
   },
   {
     key: '3',
     resId: '34567890',
+    resDate: 'Dec 21, 2024',
     checkIn: `${checkInDates[2]}\n03:00 PM`,
     checkOut: 'Jan 26 (Mon)\n11:00 AM',
     poc: (<div>Emily Chen<br /><span style={{ color: '#888' }}>emily@cloudline.com</span></div>),
@@ -398,10 +330,12 @@ const data = [
     balance: '72.00',
     businessSource: 'Agoda',
     cancellationPolicy: cancellationPolicies[2],
+    amountPaid: '172.00',
   },
   {
     key: '4',
     resId: '45678901',
+    resDate: 'Dec 21, 2024',
     checkIn: `${checkInDates[3]}\n03:00 PM`,
     checkOut: 'Jan 26 (Mon)\n11:00 AM',
     poc: (<div>Fiona Gallagher<br /><span style={{ color: '#888' }}>fiona@dream.com</span></div>),
@@ -412,10 +346,12 @@ const data = [
     balance: '62.00',
     businessSource: 'Booking.com',
     cancellationPolicy: cancellationPolicies[3],
+    amountPaid: '162.00',
   },
   {
     key: '5',
     resId: '56789012',
+    resDate: 'Dec 21, 2024',
     checkIn: `${checkInDates[4]}\n03:00 PM`,
     checkOut: 'Jan 28 (Wed)\n11:00 AM',
     poc: (<div>George Patel<br /><span style={{ color: '#888' }}>george@echo.com</span></div>),
@@ -426,10 +362,12 @@ const data = [
     balance: '52.00',
     businessSource: 'Expedia',
     cancellationPolicy: cancellationPolicies[0],
+    amountPaid: '52.00',
   },
   {
     key: '6',
     resId: '67890123',
+    resDate: 'Dec 21, 2024',
     checkIn: `${checkInDates[5]}\n03:00 PM`,
     checkOut: 'Jan 28 (Wed)\n11:00 AM',
     poc: (<div>Hannah Lee<br /><span style={{ color: '#888' }}>hanna@fusion.com</span></div>),
@@ -440,10 +378,12 @@ const data = [
     balance: '75.00',
     businessSource: 'Agoda',
     cancellationPolicy: cancellationPolicies[1],
+    amountPaid: '75.00',
   },
   {
     key: '7',
     resId: '78901234',
+    resDate: 'Dec 21, 2024',
     checkIn: `${checkInDates[6]}\n03:00 PM`,
     checkOut: 'Jan 29 (Thu)\n11:00 AM',
     poc: (<div>Ibrahim Khan<br /><span style={{ color: '#888' }}>ibrahim@galactic.com</span></div>),
@@ -454,10 +394,12 @@ const data = [
     balance: '42.00',
     businessSource: 'Booking.com',
     cancellationPolicy: cancellationPolicies[2],
+    amountPaid: '42.00',
   },
   {
     key: '8',
     resId: '89012345',
+    resDate: 'Dec 21, 2024',
     checkIn: `${checkInDates[7]}\n03:00 PM`,
     checkOut: 'Jan 20 (Tue)\n11:00 AM',
     poc: (<div>Jasmine Taylor<br /><span style={{ color: '#888' }}>jasmine@harbor.com</span></div>),
@@ -468,10 +410,12 @@ const data = [
     balance: '0.00',
     businessSource: 'Ctrip',
     cancellationPolicy: cancellationPolicies[3],
+    amountPaid: '0.00',
   },
   {
     key: '9',
     resId: '90123456',
+    resDate: 'Dec 21, 2024',
     checkIn: `${checkInDates[8]}\n03:00 PM`,
     checkOut: 'Jan 20 (Tue)\n11:00 AM',
     poc: (<div>Kyle Anderson<br /><span style={{ color: '#888' }}>kyle@illum.com</span></div>),
@@ -482,10 +426,12 @@ const data = [
     balance: '42.00',
     businessSource: 'Ctrip',
     cancellationPolicy: cancellationPolicies[0],
+    amountPaid: '42.00',
   },
   {
     key: '10',
     resId: '12345678',
+    resDate: 'Dec 21, 2024',
     checkIn: `${checkInDates[9]}\n03:00 PM`,
     checkOut: 'Jan 20 (Tue)\n11:00 AM',
     poc: (<div>Laura Kim<br /><span style={{ color: '#888' }}>laura@terra.com</span></div>),
@@ -496,10 +442,12 @@ const data = [
     balance: '50.00',
     businessSource: 'Ctrip',
     cancellationPolicy: cancellationPolicies[1],
+    amountPaid: '50.00',
   },
   {
     key: '11',
     resId: '23456724',
+    resDate: 'Dec 21, 2024',
     checkIn: `${checkInDates[10]}\n03:00 PM`,
     checkOut: 'Jan 28 (Wed)\n11:00 AM',
     poc: (<div>Michael Scott<br /><span style={{ color: '#888' }}>michael@dundermifflin.com</span></div>),
@@ -510,10 +458,12 @@ const data = [
     balance: '20.00',
     businessSource: 'ASI WebRes',
     cancellationPolicy: cancellationPolicies[2],
+    amountPaid: '120.00',
   },
   {
     key: '12',
     resId: '27892002',
+    resDate: 'Dec 21, 2024',
     checkIn: `${checkInDates[11]}\n03:00 PM`,
     checkOut: 'Jan 28 (Wed)\n11:00 AM',
     poc: (<div>Pam Beesly<br /><span style={{ color: '#888' }}>pam@dundermifflin.com</span></div>),
@@ -524,10 +474,12 @@ const data = [
     balance: '10.00',
     businessSource: 'Mobile',
     cancellationPolicy: cancellationPolicies[3],
+    amountPaid: '110.00',
   },
   {
     key: '13',
     resId: '34567891',
+    resDate: 'Dec 21, 2024',
     checkIn: `${checkInDates[12]}\n03:00 PM`,
     checkOut: 'Jan 27 (Tue)\n11:00 AM',
     poc: (<div>Jim Halpert<br /><span style={{ color: '#888' }}>jim@dundermifflin.com</span></div>),
@@ -538,10 +490,12 @@ const data = [
     balance: '82.00',
     businessSource: 'Mobile',
     cancellationPolicy: cancellationPolicies[0],
+    amountPaid: '182.00',
   },
   {
     key: '14',
     resId: '45678902',
+    resDate: 'Dec 21, 2024',
     checkIn: `${checkInDates[13]}\n03:00 PM`,
     checkOut: 'Jan 29 (Thu)\n11:00 AM',
     poc: (<div>Dwight Schrute<br /><span style={{ color: '#888' }}>dwight@dundermifflin.com</span></div>),
@@ -552,10 +506,12 @@ const data = [
     balance: '72.00',
     businessSource: (<div>Expedia<br /><span style={{ color: '#888' }}>23456233</span> <span style={{ color: '#F5A623' }}>👑</span></div>),
     cancellationPolicy: cancellationPolicies[1],
+    amountPaid: '172.00',
   },
   {
     key: '15',
     resId: '56789013',
+    resDate: 'Dec 21, 2024',
     checkIn: `${checkInDates[14]}\n03:00 PM`,
     checkOut: 'Jan 29 (Thu)\n11:00 AM',
     poc: (<div>Angela Martin<br /><span style={{ color: '#888' }}>angela@dundermifflin.com</span></div>),
@@ -566,10 +522,12 @@ const data = [
     balance: '62.00',
     businessSource: (<div>Booking.com<br /><span style={{ color: '#888' }}>23456755</span></div>),
     cancellationPolicy: cancellationPolicies[2],
+    amountPaid: '62.00',
   },
   {
     key: '16',
     resId: '67890124',
+    resDate: 'Dec 21, 2024',
     checkIn: `${checkInDates[15]}\n03:00 PM`,
     checkOut: 'Jan 29 (Thu)\n11:00 AM',
     poc: (<div>Oscar Martinez<br /><span style={{ color: '#888' }}>oscar@dundermifflin.com</span></div>),
@@ -580,10 +538,12 @@ const data = [
     balance: '85.00',
     businessSource: 'Agoda',
     cancellationPolicy: cancellationPolicies[3],
+    amountPaid: '85.00',
   },
   {
     key: '17',
     resId: '78901235',
+    resDate: 'Dec 21, 2024',
     checkIn: `${checkInDates[16]}\n03:00 PM`,
     checkOut: 'Jan 30 (Fri)\n11:00 AM',
     poc: (<div>Stanley Hudson<br /><span style={{ color: '#888' }}>stanley@dundermifflin.com</span></div>),
@@ -594,10 +554,12 @@ const data = [
     balance: '52.00',
     businessSource: 'Ctrip',
     cancellationPolicy: cancellationPolicies[0],
+    amountPaid: '52.00',
   },
   {
     key: '18',
     resId: '89012346',
+    resDate: 'Dec 21, 2024',
     checkIn: `${checkInDates[17]}\n03:00 PM`,
     checkOut: 'Jan 21 (Wed)\n11:00 AM',
     poc: (<div>Phyllis Vance<br /><span style={{ color: '#888' }}>phyllis@dundermifflin.com</span></div>),
@@ -608,10 +570,12 @@ const data = [
     balance: '0.00',
     businessSource: 'Ctrip',
     cancellationPolicy: cancellationPolicies[1],
+    amountPaid: '10.00',
   },
   {
     key: '19',
     resId: '90123457',
+    resDate: 'Dec 21, 2024',
     checkIn: `${checkInDates[18]}\n03:00 PM`,
     checkOut: 'Jan 21 (Wed)\n11:00 AM',
     poc: (<div>Ryan Howard<br /><span style={{ color: '#888' }}>ryan@dundermifflin.com</span></div>),
@@ -622,10 +586,12 @@ const data = [
     balance: '52.00',
     businessSource: 'Ctrip',
     cancellationPolicy: cancellationPolicies[2],
+    amountPaid: '52.00',
   },
   {
     key: '20',
     resId: '12345679',
+    resDate: 'Dec 21, 2024',
     checkIn: `${checkInDates[19]}\n03:00 PM`,
     checkOut: 'Jan 21 (Wed)\n11:00 AM',
     poc: (<div>Kelly Kapoor<br /><span style={{ color: '#888' }}>kelly@dundermifflin.com</span></div>),
@@ -636,6 +602,7 @@ const data = [
     balance: '60.00',
     businessSource: 'Ctrip',
     cancellationPolicy: cancellationPolicies[3],
+    amountPaid: '60.00',
   },
 ].map((row, idx) => idx < 20 ? { ...row, checkIn: `${checkInDates[idx]}\n03:00 PM` } : row);
 
@@ -970,16 +937,16 @@ const ManageReservations: React.FC = () => {
     { key: 'reservation', label: 'Status' },
     { key: 'roomName', label: 'Room/Space Name' },
     { key: 'roomType', label: 'Room/Space Type' },
-    { key: 'totalCharges', label: 'Total Charges ($)' },
-    { key: 'balance', label: 'Balance ($)' },
     { key: 'businessSource', label: 'Business Source' },
     { key: 'cancellationPolicy', label: 'Cancellation Policy' },
+    { key: 'totalCharges', label: 'Total Charges ($)' },
+    { key: 'amountPaid', label: 'Amount Paid ($)' },
+    { key: 'balance', label: 'Balance ($)' },
   ];
 
   const courtesyCustomColumnOptions = [
-    { key: 'holdReleaseDate', label: 'Hold Release Date' },
-    { key: 'reservation', label: 'Status' },
-    { key: 'roomName', label: 'No. of Rooms/Space' },
+    { key: 'roomName', label: 'Room/Space Name' },
+    { key: 'roomType', label: 'Room/Space Type' },
     { key: 'businessSource', label: 'Business Source' },
     { key: 'cancellationPolicy', label: 'Cancellation Policy' },
   ];
@@ -1194,6 +1161,7 @@ const ManageReservations: React.FC = () => {
     {
       key: '1',
       resId: '23456723',
+      resDate: 'Dec 21, 2024', // sample value
       type: 'Room',
       checkIn: `${courtesyCheckInDates[0]}\n03:00 PM`,
       checkOut: 'Jan 27 (Tue)\n11:00 AM',
@@ -1204,14 +1172,16 @@ const ManageReservations: React.FC = () => {
       roomType: 'STD',
       totalCharges: '',
       balance: '',
-      businessSource: '',
+      businessSource: 'Walk-in',
       cancellationPolicy: 'Non-Refundable',
+      amountPaid: '0.00', // sample value
       holdReleaseDate: 'Jan 20 (Tue)',
       holdId: '478299',
     },
     {
       key: '2',
       resId: '27892001',
+      resDate: 'Dec 21, 2024', // sample value
       type: 'Space',
       checkIn: `${courtesyCheckInDates[1]}\n03:00 PM`,
       checkOut: 'Jan 27 (Tue)\n11:00 AM',
@@ -1224,12 +1194,14 @@ const ManageReservations: React.FC = () => {
       balance: '',
       businessSource: 'ASI WebRes',
       cancellationPolicy: 'Free Cancellation',
+      amountPaid: '0.00', // sample value
       holdReleaseDate: 'Jan 20 (Tue)',
       holdId: '478300',
     },
     {
       key: '3',
       resId: '34567890',
+      resDate: 'Dec 21, 2024', // sample value
       type: 'Room',
       checkIn: `${courtesyCheckInDates[2]}\n03:00 PM`,
       checkOut: 'Jan 26 (Mon)\n11:00 AM',
@@ -1242,12 +1214,14 @@ const ManageReservations: React.FC = () => {
       balance: '',
       businessSource: 'Walk-in',
       cancellationPolicy: 'Flexible',
+      amountPaid: '0.00', // sample value
       holdReleaseDate: 'Jan 20 (Tue)',
       holdId: '478301',
     },
     {
       key: '4',
       resId: '45678901',
+      resDate: 'Dec 21, 2024', // sample value
       type: 'Space',
       checkIn: `${courtesyCheckInDates[3]}\n03:00 PM`,
       checkOut: 'Jan 26 (Mon)\n11:00 AM',
@@ -1260,12 +1234,14 @@ const ManageReservations: React.FC = () => {
       balance: '',
       businessSource: '',
       cancellationPolicy: 'Partial Refund',
+      amountPaid: '0.00', // sample value
       holdReleaseDate: 'Jan 24 (Sat)',
       holdId: '478302',
     },
     {
       key: '5',
       resId: '56789012',
+      resDate: 'Dec 21, 2024', // sample value
       type: 'Room',
       checkIn: `${courtesyCheckInDates[4]}\n03:00 PM`,
       checkOut: 'Jan 28 (Wed)\n11:00 AM',
@@ -1278,12 +1254,14 @@ const ManageReservations: React.FC = () => {
       balance: '',
       businessSource: 'Walk-in',
       cancellationPolicy: 'Non-Refundable',
+      amountPaid: '0.00', // sample value
       holdReleaseDate: 'Jan 25 (Sun)',
       holdId: '478303',
     },
     {
       key: '6',
       resId: '67890123',
+      resDate: 'Dec 21, 2024', // sample value
       type: 'Space',
       checkIn: `${courtesyCheckInDates[5]}\n03:00 PM`,
       checkOut: 'Jan 28 (Wed)\n11:00 AM',
@@ -1296,12 +1274,14 @@ const ManageReservations: React.FC = () => {
       balance: '',
       businessSource: 'ASI WebRes',
       cancellationPolicy: 'Free Cancellation',
+      amountPaid: '0.00', // sample value
       holdReleaseDate: 'Jan 25 (Sun)',
       holdId: '478304',
     },
     {
       key: '7',
       resId: '78901234',
+      resDate: 'Dec 21, 2024', // sample value
       type: 'Room',
       checkIn: `${courtesyCheckInDates[6]}\n03:00 PM`,
       checkOut: 'Jan 29 (Thu)\n11:00 AM',
@@ -1314,38 +1294,137 @@ const ManageReservations: React.FC = () => {
       balance: '',
       businessSource: 'Walk-in',
       cancellationPolicy: 'Flexible',
+      amountPaid: '0.00', // sample value
       holdReleaseDate: 'Jan 26 (Mon)',
       holdId: '478305',
     },
-  ].map((row, idx) => idx < 7 ? { ...row, checkIn: `${checkInDates[idx]}\n03:00 PM` } : row);
+  ].map((row, idx) => ({
+    ...row,
+    resDate: row.resDate || 'Dec 21, 2024',
+    amountPaid: row.amountPaid || '0.00',
+    checkIn: `${checkInDates[idx]}\n03:00 PM`,
+  }));
   // Remove Total Charges and Balance columns for courtesy tab
   const courtesyColumns = [
-    finalColumns[0], // checkbox column
     {
-      title: 'Hold ID',
-      dataIndex: 'holdId',
-      key: 'holdId',
-      width: 120,
-      align: 'left',
-      render: (value: string) => <span>{value}</span>,
-      sorter: (a: any, b: any) => (a.holdId || '').localeCompare(b.holdId || ''),
-      fixed: 'left', // Freeze the Hold ID column
+      title: '',
+      dataIndex: 'checkbox',
+      key: 'checkbox',
+      width: 48,
+      fixed: 'left' as const,
+      render: (_: any, record: any) => null, // handled by rowSelection
     },
-    ...finalColumns.filter(col => col.key !== 'resId' && col.key !== 'totalCharges' && col.key !== 'balance' && col.key !== finalColumns[0].key),
-  ].map(col => {
-    if (col.key === 'reservation') {
-      return {
-        ...col,
-        render: (_: any, record: any) => {
-          // Use TagUnconfirmed.svg for 'Unconfirmed', TagConfirmed.svg for 'Confirmed'
-          const status = record.reservationStatus;
-          const tag = status === 'Unconfirmed' ? TagUnconfirmed : TagConfirmed;
-          return <img src={tag} alt={status} style={{ height: 22 }} />;
-        },
-      };
-    }
-    return col;
-  });
+    {
+      title: 'Res. ID',
+      dataIndex: 'resId',
+      key: 'resId',
+      width: 120,
+      fixed: 'left' as const,
+      sorter: (a: any, b: any) => a.resId.localeCompare(b.resId),
+    },
+    {
+      title: 'Type',
+      dataIndex: 'type',
+      key: 'type',
+      width: 100,
+      fixed: 'left' as const,
+    },
+    {
+      title: 'Res. Date',
+      dataIndex: 'resDate',
+      key: 'resDate',
+      width: 130,
+      fixed: 'left' as const,
+    },
+    {
+      title: 'Check-In',
+      dataIndex: 'checkIn',
+      key: 'checkIn',
+      width: 140,
+      fixed: 'left' as const,
+    },
+    {
+      title: 'Check-Out',
+      dataIndex: 'checkOut',
+      key: 'checkOut',
+      width: 140,
+      fixed: 'left' as const,
+    },
+    {
+      title: 'Point of Contact',
+      dataIndex: 'poc',
+      key: 'poc',
+      width: 180,
+      fixed: 'left' as const,
+    },
+    {
+      title: 'Status',
+      dataIndex: 'reservationStatus',
+      key: 'reservationStatus',
+      width: 120,
+      render: (status: string) => {
+        if (status === 'Unconfirmed') {
+          return <img src={TagUnconfirmed} alt="Unconfirmed" style={{ height: 22 }} />;
+        }
+        if (status === 'Confirmed') {
+          return <img src={TagConfirmed} alt="Confirmed" style={{ height: 22 }} />;
+        }
+        return status;
+      },
+    },
+    {
+      title: 'Room/Space Name',
+      dataIndex: 'roomName',
+      key: 'roomName',
+      width: 140,
+    },
+    {
+      title: 'Room/Space Type',
+      dataIndex: 'roomType',
+      key: 'roomType',
+      width: 140,
+    },
+    {
+      title: 'Business Source',
+      dataIndex: 'businessSource',
+      key: 'businessSource',
+      width: 140,
+    },
+    {
+      title: 'Cancellation Policy',
+      dataIndex: 'cancellationPolicy',
+      key: 'cancellationPolicy',
+      width: 160,
+    },
+    {
+      title: 'Total Charges ($)',
+      dataIndex: 'totalCharges',
+      key: 'totalCharges',
+      width: 140,
+    },
+    {
+      title: 'Amount Paid ($)',
+      dataIndex: 'amountPaid',
+      key: 'amountPaid',
+      width: 140,
+    },
+    {
+      title: 'Balance ($)',
+      dataIndex: 'balance',
+      key: 'balance',
+      width: 120,
+    },
+    {
+      title: '',
+      key: 'actions',
+      dataIndex: 'actions',
+      width: 60,
+      fixed: 'right' as const,
+      render: (_: any, record: any) => (
+        <span style={{ cursor: 'pointer' }}>...</span>
+      ),
+    },
+  ];
 
   // Courtesy Hold tab: filter by Rooms/Spaces toggles before search/sort
   const filteredCourtesyDataByType = React.useMemo(() => {
@@ -1501,17 +1580,19 @@ const ManageReservations: React.FC = () => {
   const allReservationsColumnOrder = [
     'resId',        // 1. Res. ID (Freeze)
     'type',         // 2. Type (Freeze)
-    'checkIn',      // 3. Check-In (Freeze)
-    'checkOut',     // 4. Check-Out (Freeze)
-    'poc',          // 5. Point of Contact (Freeze)
-    'reservation',  // 6. Status
-    'roomName',     // 7. No. of Rooms/Space
-    'roomType',     // 8. Room/Space Type
-    'totalCharges', // 9. Total Charges ($)
-    'balance',      // 10. Balance ($)
-    'businessSource', // 11. Business Source
-    'cancellationPolicy', // 12. Cancellation Policy
-    'actions'       // 13. Action Columns (Freeze)
+    'resDate',      // 3. Res. Date (Freeze)
+    'checkIn',      // 4. Check-In (Freeze)
+    'checkOut',     // 5. Check-Out (Freeze)
+    'poc',          // 6. Point of Contact (Freeze)
+    'reservation',  // 7. Status
+    'roomName',     // 8. Room/Space Name
+    'roomType',     // 9. Room/Space Type
+    'businessSource', // 10. Business Source
+    'cancellationPolicy', // 11. Cancellation Policy
+    'totalCharges', // 12. Total Charges ($)
+    'amountPaid',   // 13. Amount Paid ($)
+    'balance',      // 14. Balance ($)
+    'actions'       // 15. Action Columns (Freeze)
   ];
 
   // Define the keys for frozen columns in All Reservations tab
@@ -1532,7 +1613,7 @@ const ManageReservations: React.FC = () => {
       // All Reservations tab
       const colMap = Object.fromEntries(columnsWithType.map(col => [col.key, col]));
       // Frozen columns always visible
-      const frozenKeys = ['resId', 'type', 'checkIn', 'checkOut', 'poc', 'actions'];
+      const frozenKeys = ['resId', 'type', 'resDate', 'checkIn', 'checkOut', 'poc', 'actions'];
       // Non-frozen columns toggled by customize columns
       const visibleNonFrozenKeys = allReservationsCustomColumns.filter(col => col.visible && !frozenKeys.includes(col.key)).map(col => col.key);
       // Final order: always all frozen, then visible non-frozen, in the specified order
@@ -1988,6 +2069,69 @@ const ManageReservations: React.FC = () => {
     setPendingFiltersForTab(getFilters());
   }, [activeTab]);
 
+  // Add this after finalUnpostedData
+  const finalInHouseData = React.useMemo(() => {
+    // Filter data for In-House status
+    return finalAllReservationsData.filter(row => {
+      let status = '';
+      if (typeof row.reservation === 'string') {
+        status = row.reservation;
+      } else if (row.reservation?.props?.children) {
+        const children = row.reservation.props.children;
+        status = typeof children === 'string' ? children : (children[1] || '').props?.children || '';
+      }
+      return status.toLowerCase().includes('in-house');
+    });
+  }, [finalAllReservationsData]);
+
+  // Just before the return statement in ManageReservations, add:
+  const tabItems = [
+    { key: '1', label: `All Reservations (${finalAllReservationsData.length})`, children: null },
+    { key: '2', label: `Arrivals (${finalCourtesyData.length})`, children: null },
+    { key: '3', label: `Departures (${finalUnpostedData.length})`, children: null },
+    { key: '4', label: `In-House (${finalInHouseData.length})`, children: null },
+  ];
+
+  // Define dummy columns and data for the Arrivals tab
+  const dummyColumns = [
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+    },
+    {
+      title: 'Age',
+      dataIndex: 'age',
+      key: 'age',
+    },
+    {
+      title: 'Address',
+      dataIndex: 'address',
+      key: 'address',
+    },
+  ];
+
+  const dummyData = [
+    {
+      key: '1',
+      name: 'John Brown',
+      age: 32,
+      address: 'New York No. 1 Lake Park',
+    },
+    {
+      key: '2',
+      name: 'Jim Green',
+      age: 42,
+      address: 'London No. 1 Lake Park',
+    },
+    {
+      key: '3',
+      name: 'Joe Black',
+      age: 32,
+      address: 'Sydney No. 1 Lake Park',
+    },
+  ];
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <Sidebar />
@@ -2171,30 +2315,29 @@ const ManageReservations: React.FC = () => {
                 </div>
               )}
             <div style={{ marginTop: 24 }}>
-              <Table
-                rowSelection={rowSelection}
-                  columns={getTabColumns(activeTab)}
-                  dataSource={activeTab === '1' ? finalAllReservationsData.slice((current - 1) * pageSize, current * pageSize) : activeTab === '2' ? finalCourtesyData.slice((current - 1) * pageSize, current * pageSize) : sortedUnpostedData}
-                scroll={{ x: 1500, y: 480 }}
-                pagination={false}
-                locale={{
-                  emptyText: activeTab === '1' && filteredData.length === 0 ? (
-                    <img src={NoDataSVG} alt="No data" style={{ width: 120, marginBottom: 12 }} />
-                  ) : undefined
-                }}
-                onRow={record => ({
-                    onClick: () => {
-                      if (activeTab === '2') {
-                        navigate(`/update-courtesy-hold/${record.resId}`);
-                      } else {
-                        navigate(`/update-reservation/${record.resId}`);
-                      }
-                    },
-                  style: { cursor: 'pointer' },
-                })}
-                style={{ borderRadius: 8, overflow: 'hidden' }}
-                className="custom-table-borders"
-              />
+              {activeTab === '2' ? (
+                <Table
+                  rowSelection={rowSelection}
+                  columns={courtesyColumns}
+                  dataSource={filteredDataCourtesySorted}
+                  scroll={{ x: 1500, y: 480 }}
+                  pagination={false}
+                  className="custom-table-borders"
+                />
+              ) : (
+                <Table
+                  rowSelection={rowSelection}
+                  columns={getTabColumnsArray(activeTab)}
+                  dataSource={
+                    activeTab === '1' ? pagedData :
+                    activeTab === '3' ? sortedUnpostedData :
+                    []
+                  }
+                  scroll={{ x: 1500, y: 480 }}
+                  pagination={false}
+                  className="custom-table-borders"
+                />
+              )}
             </div>
             {activeTab === '1' && <div style={{ height: 16 }} />}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '8px 0' }}>
