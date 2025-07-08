@@ -104,31 +104,24 @@ const columns = [
     title: 'Res. ID',
     dataIndex: 'resId',
     key: 'resId',
-    width: 120,
+    width: 140,
     fixed: 'left' as 'left',
     sorter: (a: any, b: any) => a.resId.localeCompare(b.resId),
-    render: (value: string, record: any) => {
-      // Only show UsersIcon if type !== 'Space' and key is 5, 6, or 7
-      const showUsersIcon = ['5', '6', '7'].includes(record.key) && record.type !== 'Space';
-      return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-          <span>{value}</span>
-          {showUsersIcon && (
+    render: (value: string, record: any, idx: number) => {
+      if (idx === 1) {
+        return (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span>{value}</span>
             <Tooltip title="Group Name">
-              <img src={UsersIcon} alt="Group" style={{ width: 16, height: 16, opacity: 0.7 }} />
+              <img src={UsersIcon} alt="Group" style={{ width: 16, height: 16, opacity: 0.7, cursor: 'pointer' }} />
             </Tooltip>
-          )}
-        </div>
-      );
+          </span>
+        );
+      }
+      return value;
     },
   },
-  {
-    title: 'Type',
-    dataIndex: 'type',
-    key: 'type',
-    width: 80,
-    render: (value: string) => value,
-  },
+  
   {
     title: 'Res. Date',
     dataIndex: 'resDate',
@@ -215,7 +208,18 @@ const columns = [
     dataIndex: 'businessSource',
     key: 'businessSource',
     width: 160,
-    render: (value: any, record: any, idx: number) => value,
+    render: (value: any, record: any, idx: number) => {
+      if (idx === 0) {
+        return 'Walk-In';
+      }
+      const crsIds = ['234567', '345678', '456789', '567890', '678901', '789012'];
+      return (
+        <div>
+          <div>{typeof value === 'string' ? value : ''}</div>
+          <div style={{ color: '#888', fontSize: 13, lineHeight: '18px' }}>{crsIds[idx - 1]}</div>
+        </div>
+      );
+    },
   },
   {
     title: 'Cancellation Policy',
@@ -1306,14 +1310,7 @@ const ManageReservations: React.FC = () => {
   }));
   // Remove Total Charges and Balance columns for courtesy tab
   const courtesyColumns = [
-    {
-      title: '',
-      dataIndex: 'checkbox',
-      key: 'checkbox',
-      width: 48,
-      fixed: 'left' as const,
-      render: (_: any, record: any) => null, // handled by rowSelection
-    },
+    
     {
       title: 'Res. ID',
       dataIndex: 'resId',
@@ -2132,6 +2129,157 @@ const ManageReservations: React.FC = () => {
     },
   ];
 
+  // 1. Define columns and data for In-House tab
+  const inHouseColumns = [
+    {
+      title: '',
+      dataIndex: 'checkbox',
+      key: 'checkbox',
+      width: 48,
+      render: () => null, // handled by rowSelection
+    },
+    {
+      title: 'Res. ID',
+      dataIndex: 'resId',
+      key: 'resId',
+      width: 120,
+      render: (value: string, record: any) => (
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span>{value}</span>
+          {record.isGroup && (
+            <Tooltip title="Group Name">
+              <img src={UsersIcon} alt="Group" style={{ width: 16, height: 16, opacity: 0.7, cursor: 'pointer' }} />
+            </Tooltip>
+          )}
+        </span>
+      ),
+    },
+    {
+      title: 'Booking Date',
+      dataIndex: 'bookingDate',
+      key: 'bookingDate',
+      width: 120,
+    },
+    {
+      title: 'Check-In',
+      dataIndex: 'checkIn',
+      key: 'checkIn',
+      width: 140,
+      render: (value: string) => {
+        const [date, time] = value.split('\n');
+        return (
+          <span>
+            {date}<br />
+            <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)' }}>{time}</span>
+          </span>
+        );
+      },
+    },
+    {
+      title: 'Check-Out',
+      dataIndex: 'checkOut',
+      key: 'checkOut',
+      width: 140,
+      render: (value: string) => {
+        const [date, time] = value.split('\n');
+        return (
+          <span>
+            {date}<br />
+            <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)' }}>{time}</span>
+          </span>
+        );
+      },
+    },
+    {
+      title: 'Point of Contact',
+      dataIndex: 'poc',
+      key: 'poc',
+      width: 180,
+      render: (value: any) => value,
+    },
+    {
+      title: 'Room/Space Name',
+      dataIndex: 'roomName',
+      key: 'roomName',
+      width: 140,
+    },
+    {
+      title: 'Room/Space Type',
+      dataIndex: 'roomType',
+      key: 'roomType',
+      width: 140,
+    },
+    {
+      title: 'Business Source',
+      dataIndex: 'businessSource',
+      key: 'businessSource',
+      width: 160,
+      render: (value: any, record: any) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div>
+            <div>{value}</div>
+            {record.crsId && <div style={{ color: '#888', fontSize: 13, lineHeight: '18px' }}>{record.crsId}</div>}
+          </div>
+          {record.isCrown && (
+            <Tooltip title="Genius">
+              <span role="img" aria-label="crown" style={{ color: '#F5A623', fontSize: 16, marginLeft: 2 }}>👑</span>
+            </Tooltip>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: 'Cancellation Policy',
+      dataIndex: 'cancellationPolicy',
+      key: 'cancellationPolicy',
+      width: 140,
+    },
+    {
+      title: 'Total Amount ($)',
+      dataIndex: 'totalCharges',
+      key: 'totalCharges',
+      width: 120,
+    },
+    {
+      title: 'Amount Paid ($)',
+      dataIndex: 'amountPaid',
+      key: 'amountPaid',
+      width: 120,
+    },
+    {
+      title: 'Balance ($)',
+      dataIndex: 'balance',
+      key: 'balance',
+      width: 120,
+      render: (value: string) => (
+        <span style={{ color: Number(value) > 0 ? '#2267E3' : undefined, cursor: Number(value) > 0 ? 'pointer' : undefined }}>{value}</span>
+      ),
+    },
+    {
+      title: '',
+      key: 'actions',
+      fixed: 'right' as 'right',
+      width: 64,
+      render: () => (
+        <span style={{ cursor: 'pointer' }}>...</span>
+      ),
+    },
+  ];
+
+  const inHouseData = [
+    {
+      key: '1', resId: '23456723', isGroup: true, bookingDate: 'Dec 21, 2024', checkIn: 'Jan 21, 2025\n03:00 PM', checkOut: 'Jan 27, 2025\n11:00 AM', poc: (<div>Catherine Stever<br /><span style={{ color: '#888' }}>catherine@azurefsjsj.com</span></div>), roomName: '101', roomType: 'STD', businessSource: 'ASI WebRes', crsId: '3789321', cancellationPolicy: 'Non-Refundable', totalCharges: '100.00', amountPaid: '100.00', balance: '0.00' },
+    { key: '2', resId: '27278281', isGroup: true, bookingDate: 'Dec 21, 2024', checkIn: 'Jan 21, 2025\n03:00 PM', checkOut: 'Jan 27 , 2025\n11:00 AM', poc: (<div>Daniel Rodriguez<br /><span style={{ color: '#888' }}>daniel@circle.com</span></div>), roomName: '102, 103, 501', roomType: 'DBKS, STD, KNS', businessSource: 'Walk-In', crsId: '3789321', cancellationPolicy: 'Non-Refundable', totalCharges: '100.00', amountPaid: '100.00', balance: '0.00' },
+    { key: '3', resId: '34567890', bookingDate: 'Dec 20, 2024', checkIn: 'Jan 21, 2025\n03:00 PM', checkOut: 'Jan 26, 2025\n11:00 AM', poc: (<div>Emily Chen<br /><span style={{ color: '#888' }}>emily@cloudline.com</span></div>), roomName: 'Main Banquet', roomType: 'Banquet', businessSource: 'Walk-In', crsId: '', cancellationPolicy: 'Partial Refund', totalCharges: '172.00', amountPaid: '100.00', balance: '72.00' },
+    { key: '4', resId: '45678901', bookingDate: 'Jan 03, 2025', checkIn: 'Jan 21, 2025\n03:00 PM', checkOut: 'Jan 26, 2025\n11:00 AM', poc: (<div>Fiona Gallagher<br /><span style={{ color: '#888' }}>fiona@dream.com</span></div>), roomName: '205', roomType: 'STD', businessSource: 'Expedia', crsId: '23456232', isCrown: true, cancellationPolicy: '--', totalCharges: '162.00', amountPaid: '100.00', balance: '62.00' },
+    { key: '5', resId: '56789012', bookingDate: 'Jan 03, 2025', checkIn: 'Jan 21, 2025\n03:00 PM', checkOut: 'Jan 28, 2025\n11:00 AM', poc: (<div>George Patel<br /><span style={{ color: '#888' }}>george@echo.com</span></div>), roomName: '310', roomType: 'DBKS', businessSource: 'Booking.com', crsId: '23456754', cancellationPolicy: '--', totalCharges: '52.00', amountPaid: '100.00', balance: '52.00' },
+    { key: '6', resId: '3891200', bookingDate: 'Jan 13, 2025', checkIn: 'Jan 21, 2025\n03:00 PM', checkOut: 'Jan 28, 2025\n11:00 AM', poc: (<div>Hannah Lee<br /><span style={{ color: '#888' }}>hanna@fusion.com</span></div>), roomName: '444', roomType: 'DBKS', businessSource: 'Walk-In', crsId: '', cancellationPolicy: 'Non-Refundable', totalCharges: '75.00', amountPaid: '00.00', balance: '75.00' },
+    { key: '7', resId: '48920001', bookingDate: 'Jan 14, 2025', checkIn: 'Jan 21, 2025\n03:00 PM', checkOut: 'Jan 29, 2025\n11:00 AM', poc: (<div>Ibrahim Khan<br /><span style={{ color: '#888' }}>ibrahim@galactic.com</span></div>), roomName: '210', roomType: 'KNS', businessSource: 'Ctrip', crsId: '3883929', cancellationPolicy: 'Non-Refundable', totalCharges: '42.00', amountPaid: '00.00', balance: '42.00' },
+    { key: '8', resId: '90123456', bookingDate: 'Jan 14, 2025', checkIn: 'Jan 21, 2025\n03:00 PM', checkOut: 'Jan 20, 2025\n11:00 AM', poc: (<div>Kyle Anderson<br /><span style={{ color: '#888' }}>kyle@illum.com</span></div>), roomName: '556', roomType: 'KNS', businessSource: 'Ctrip', crsId: '1999292', cancellationPolicy: 'Non-Refundable', totalCharges: '42.00', amountPaid: '00.00', balance: '42.00' },
+    { key: '9', resId: '12345678', bookingDate: 'Jan 15, 2025', checkIn: 'Jan 21, 2025\n03:00 PM', checkOut: 'Jan 20, 2025\n11:00 AM', poc: (<div>Laura Kim<br /><span style={{ color: '#888' }}>laura@terra.com</span></div>), roomName: '778', roomType: 'KNS', businessSource: 'Ctrip', crsId: '3891993', cancellationPolicy: 'Partial Refund', totalCharges: '50.00', amountPaid: '00.00', balance: '50.00' },
+    { key: '10', resId: '33889111', bookingDate: 'Jan 15, 2025', checkIn: 'Jan 21, 2025\n03:00 PM', checkOut: 'Jan 20, 2025\n11:00 AM', poc: (<div>Lane Hanli<br /><span style={{ color: '#888' }}>laura@terra.com</span></div>), roomName: '778', roomType: 'KNS', businessSource: 'Ctrip', crsId: '2378811', cancellationPolicy: 'Partial Refund', totalCharges: '50.00', amountPaid: '100.00', balance: '50.00' },
+  ];
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <Sidebar />
@@ -2162,7 +2310,7 @@ const ManageReservations: React.FC = () => {
                 <div style={{ position: 'relative', width: 400 }}>
                   <Input.Search
                     ref={searchInputRef}
-                    placeholder="Search for Res ID., POC, room/space name"
+                    placeholder="Search for res/CRS/Hold ID, POC, room/space name, group"
                     enterButton={<SearchOutlined />}
                     style={{ maxWidth: 400, height: 40 }}
                     className="batch-folio-toolbar"
@@ -2173,14 +2321,24 @@ const ManageReservations: React.FC = () => {
                       if (activeTab === '1') {
                         if (value.trim()) {
                           const lower = value.trim().toLowerCase();
-                          const filtered = data.filter(row => {
+                          const filtered = data.filter((row, idx) => {
                             const pocName = row.poc?.props?.children?.[0] || '';
                             const pocEmail = row.poc?.props?.children?.[2]?.props?.children || '';
+                            let crsId = '';
+                            if (idx > 0) {
+                              const crsIds = ['234567', '345678', '456789', '567890', '678901', '789012'];
+                              crsId = crsIds[idx - 1];
+                            }
+                            const holdId = idx === 3 ? '738929' : '';
+                            const groupName = idx === 1 ? 'group name' : '';
                             return (
                               row.resId.toLowerCase().includes(lower) ||
                               (typeof pocName === 'string' && pocName.toLowerCase().includes(lower)) ||
                               (typeof pocEmail === 'string' && pocEmail.toLowerCase().includes(lower)) ||
-                              (row.roomName && row.roomName.toLowerCase().includes(lower))
+                              (row.roomName && row.roomName.toLowerCase().includes(lower)) ||
+                              (crsId && crsId.includes(lower)) ||
+                              (holdId && holdId.includes(lower)) ||
+                              (groupName && groupName.includes(lower))
                             );
                           });
                           setFilteredData(filtered);
@@ -2252,24 +2410,22 @@ const ManageReservations: React.FC = () => {
                     })()}
                     className="icon-button"
                   >
-                    {(() => {
-                      let columnsState = allReservationsCustomColumns;
-                      if (activeTab === '2') columnsState = courtesyCustomColumnsState;
-                      if (activeTab === '3') columnsState = unpostedCustomColumns;
-                      const anyUnchecked = columnsState.some(col => !col.visible);
-                      return anyUnchecked ? (
                     <CustomColumnIcon style={iconStyle} />
-                      ) : (
-                        <CustomColumnIcon style={iconStyle} />
-                      );
-                    })()}
                   </Button>
                 </Dropdown>
                 <Button
+                  type="default"
+                  style={iconButtonStyle}
+                  className="icon-button"
+                  aria-label="Export"
+                >
+                  <img src={ExportIcon} alt="Export" style={{ width: 24, height: 24, filter: 'invert(0)' }} />
+                </Button>
+                <Button
                   type="primary"
                   style={{
-                    background: selectedRowKeys.length === 0 ? '#E0E0E0' : '#3E4BE0',
-                    color: selectedRowKeys.length === 0 ? '#A0A0A0' : '#fff',
+                    background: '#3E4BE0',
+                    color: '#fff',
                     border: 'none',
                     borderRadius: 8,
                     height: 40,
@@ -2282,12 +2438,10 @@ const ManageReservations: React.FC = () => {
                     alignItems: 'center',
                     gap: 8,
                     boxShadow: '0 2px 8px 0 rgba(62,75,224,0.15)',
-                    cursor: selectedRowKeys.length === 0 ? 'not-allowed' : 'pointer',
+                    cursor: 'pointer',
                   }}
-                  icon={<img src={ExportIcon} alt="Export" style={{ width: 24, height: 24, filter: selectedRowKeys.length === 0 ? 'grayscale(1) brightness(0.7)' : 'none' }} />}
-                  disabled={selectedRowKeys.length === 0}
                 >
-                  Export
+                  Actions <span style={{ marginLeft: 4, fontSize: 18 }}>▼</span>
                 </Button>
               </div>
             </div>
@@ -2315,7 +2469,16 @@ const ManageReservations: React.FC = () => {
                 </div>
               )}
             <div style={{ marginTop: 24 }}>
-              {activeTab === '2' ? (
+              {activeTab === '4' ? (
+                <Table
+                  rowSelection={rowSelection}
+                  columns={inHouseColumns}
+                  dataSource={inHouseData}
+                  scroll={{ x: 1500, y: 480 }}
+                  pagination={false}
+                  className="custom-table-borders"
+                />
+              ) : activeTab === '2' ? (
                 <Table
                   rowSelection={rowSelection}
                   columns={courtesyColumns}
@@ -2329,7 +2492,7 @@ const ManageReservations: React.FC = () => {
                   rowSelection={rowSelection}
                   columns={getTabColumnsArray(activeTab)}
                   dataSource={
-                    activeTab === '1' ? pagedData :
+                    activeTab === '1' ? filteredData :
                     activeTab === '3' ? sortedUnpostedData :
                     []
                   }
