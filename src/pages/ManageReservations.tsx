@@ -178,16 +178,21 @@ const columns = [
         const children = value.props.children;
         status = typeof children === 'string' ? children : (children[1] || '').props?.children || '';
       }
-      status = status.toLowerCase();
+      status = status.trim();
       let TagIcon = null;
-      if (status.includes('in-house')) TagIcon = TagInhouse;
-      else if (status.includes('cancelled')) TagIcon = TagCancelled;
-      else if (status.includes('no show')) TagIcon = TagNoShow;
-      else if (status.includes('checked-out')) TagIcon = TagCheckedout;
-      else if (status.includes('unconfirmed')) TagIcon = TagUnconfirmed;
-      else if (status.includes('confirmed')) TagIcon = TagConfirmed;
-      else if (status.includes('transfer out')) TagIcon = TagTransferOut;
-      return TagIcon ? <img src={TagIcon} alt={status} style={{ height: 22 }} /> : status;
+      if (status.toLowerCase().includes('in-house')) TagIcon = TagInhouse;
+      else if (status.toLowerCase().includes('cancelled')) TagIcon = TagCancelled;
+      else if (status.toLowerCase().includes('no show')) TagIcon = TagNoShow;
+      else if (status.toLowerCase().includes('checked-out')) TagIcon = TagCheckedout;
+      else if (status.toLowerCase().includes('unconfirmed')) TagIcon = TagUnconfirmed;
+      else if (status.toLowerCase().includes('confirmed')) TagIcon = TagConfirmed;
+      else if (status.toLowerCase().includes('transfer out')) TagIcon = TagTransferOut;
+      return (
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {TagIcon && <img src={TagIcon} alt={status} style={{ height: 22 }} />}
+          <span style={{ fontWeight: 500 }}>{status}</span>
+        </span>
+      );
     },
   },
   {
@@ -2794,17 +2799,7 @@ const ManageReservations: React.FC = () => {
   // 1. Add helper to get status from row (using tag SVG mapping)
   const getStatusFromRow = (row: any) => {
     if (!row) return '';
-    if (row.reservation && typeof row.reservation === 'object' && row.reservation.props && row.reservation.props.src) {
-      const src = row.reservation.props.src;
-      if (src.includes('TagUnconfirmed.svg')) return 'Unconfirmed';
-      if (src.includes('TagConfirmed.svg')) return 'Confirmed';
-      if (src.includes('TagInhouse.svg')) return 'Inhouse';
-      if (src.includes('TagNo-Show.svg')) return 'No-Show';
-      if (src.includes('TagCancelled.svg')) return 'Cancelled';
-      if (src.includes('TagTransfer Out.svg')) return 'Transfer Out';
-      if (src.includes('TagCheckedout.svg')) return 'Checked-Out';
-    }
-    return '';
+    return row.status || '';
   };
 
   // 2. Compute selected statuses
@@ -2816,7 +2811,8 @@ const ManageReservations: React.FC = () => {
   let actionsMenu = null;
   let isActionsDisabled = selectedRowKeys.length === 0;
   if (!isActionsDisabled) {
-    if (uniqueStatuses.length === 1 && (uniqueStatuses[0] === 'Inhouse')) {
+    console.log('DEBUG uniqueStatuses:', uniqueStatuses);
+    if (uniqueStatuses.length === 1 && (uniqueStatuses[0] === 'In-House')) {
       actionsMenu = (
         <Menu>
           <Menu.Item key="checkout">Check-Out</Menu.Item>
@@ -2935,6 +2931,8 @@ const ManageReservations: React.FC = () => {
     return filteredInHouse.slice((currentPage - 1) * pageSize, pageSize * currentPage);
   }, [filteredInHouse, currentPage, pageSize]);
 
+  console.log('DEBUG activeTab:', activeTab);
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <Sidebar />
@@ -2947,6 +2945,7 @@ const ManageReservations: React.FC = () => {
               <Tabs
                 style={{ marginTop: 24 }}
                 defaultActiveKey="1"
+                onChange={onTabChange}
                 items={[
                   {
                     key: '1',
@@ -2993,22 +2992,16 @@ const ManageReservations: React.FC = () => {
                               icon={<img src={Export2Icon} alt="Export" style={{ width: 24, height: 24 }} />}
                   aria-label="Export"
                             />
-                <Dropdown
+                <Dropdown.Button
                   overlay={actionsMenu}
-                  trigger={["click"]}
-                  placement="bottomRight"
-                  arrow
-                  getPopupContainer={() => document.body}
-                >
-                <Button
                   type="primary"
-                    style={{ height: 40, minHeight: 40, minWidth: 120, borderRadius: 12, fontWeight: 600, fontSize: 18, display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 2px 8px 0 rgba(62,75,224,0.08)' }}
-                    aria-label="Actions"
-                    disabled={isActionsDisabled}
-                  >
-                    Actions <RightOutlined />
-                </Button>
-                </Dropdown>
+                  style={{ height: 40, minHeight: 40, minWidth: 120, borderRadius: 12, fontWeight: 600, fontSize: 18, display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 2px 8px 0 rgba(62,75,224,0.08)' }}
+                  disabled={isActionsDisabled}
+                  placement="bottomRight"
+                  icon={<RightOutlined />}
+                >
+                  Actions
+                </Dropdown.Button>
                     </div>
                     </div>
             <div style={{ marginTop: 24 }}>
@@ -3440,6 +3433,21 @@ const ManageReservations: React.FC = () => {
               }
             >
         <Form layout="vertical" style={{ marginTop: 8 }}>
+          {/* Form for "Show past reservations" toggle */}
+          {activeTab === '1' && (
+            <Form layout="vertical" style={{ marginTop: 8 }}>
+              <Form.Item style={{ marginBottom: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontWeight: 500, fontSize: 15 }}>Show past reservations</span>
+                  <Switch
+                    checked={pendingFiltersAll.showPastReservations}
+                    onChange={val => setPendingFiltersAll({ ...pendingFiltersAll, showPastReservations: val })}
+                  />
+                </div>
+              </Form.Item>
+            </Form>
+          )}
+
           <Form.Item label={<span style={{ fontWeight: 500, fontSize: 15 }}>Type</span>} style={{ marginBottom: 20 }}>
             <Select
               mode="multiple"
@@ -3463,21 +3471,27 @@ const ManageReservations: React.FC = () => {
               placeholder={['Start Date', 'End Date']}
                   />
                 </Form.Item>
-          {activeTab !== '4' && (
-            <Form.Item label={<span style={{ fontWeight: 500, fontSize: 15 }}>Status</span>} style={{ marginBottom: 20 }}>
-                  <Select
-                    mode="multiple"
-                value={filterStatus}
-                onChange={setFilterStatus}
-                    style={{ width: '100%' }}
-                    placeholder="Select status"
-                options={activeTab === '2' ? [
-                  { value: 'Unconfirmed', label: 'Unconfirmed' },
-                  { value: 'Confirmed', label: 'Confirmed' },
-                ] : statusOptions}
-                  />
-                </Form.Item>
-                  )}
+
+          {/* Form for Status dropdown */}
+          {(activeTab === '1' || activeTab === '2') && (
+            <Form layout="vertical" style={{ marginTop: 8 }}>
+              <Form.Item label={<span style={{ fontWeight: 500, fontSize: 15 }}>Status</span>} style={{ marginBottom: 20 }}>
+                <Select
+                  mode="multiple"
+                  value={filterStatus}
+                  onChange={setFilterStatus}
+                  style={{ width: '100%' }}
+                  placeholder="Select status"
+                  options={
+                    activeTab === '2'
+                      ? statusOptions.filter(option => option.value === 'Confirmed' || option.value === 'Unconfirmed')
+                      : statusOptions
+                  }
+                />
+              </Form.Item>
+            </Form>
+          )}
+
           <Form.Item label={<span style={{ fontWeight: 500, fontSize: 15 }}>Room/Space Type</span>} style={{ marginBottom: 20 }}>
                   <Select
                     mode="multiple"
