@@ -2825,6 +2825,35 @@ const ManageReservations: React.FC = () => {
     return filteredAllReservations.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   }, [filteredAllReservations, currentPage, pageSize]);
 
+  // For Today's Arrivals tab, filter allReservationsData for Confirmed/Unconfirmed and Check-In date Jan 21, 2025
+  const arrivalsData = allReservationsData.filter(row => {
+    const status = (row.status || '').toLowerCase();
+    const isConfirmed = status === 'confirmed';
+    const isUnconfirmed = status === 'unconfirmed';
+    const checkInDate = (row.checkIn || '').split('\n')[0];
+    return (isConfirmed || isUnconfirmed) && checkInDate === 'Jan 21, 2025';
+  });
+
+  const [searchTextArrivals, setSearchTextArrivals] = useState('');
+  const filteredArrivals = React.useMemo(() => {
+    if (!searchTextArrivals.trim()) return arrivalsData;
+    const lower = searchTextArrivals.trim().toLowerCase();
+    return arrivalsData.filter(row => {
+      const resId = row.resId?.toLowerCase() || '';
+      const pocName = row.pocName?.toLowerCase?.() || '';
+      const pocEmail = row.pocEmail?.toLowerCase?.() || '';
+      return (
+        resId.includes(lower) ||
+        pocName.includes(lower) ||
+        pocEmail.includes(lower)
+      );
+    });
+  }, [searchTextArrivals, arrivalsData]);
+
+  const filteredPaginatedArrivals = React.useMemo(() => {
+    return filteredArrivals.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  }, [filteredArrivals, currentPage, pageSize]);
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <Sidebar />
@@ -2851,9 +2880,9 @@ const ManageReservations: React.FC = () => {
                             size="large"
                             style={{ width: 400, height: 40 }}
                             aria-label="Search All Reservations"
-                            value={searchText}
-                            onChange={e => setSearchText(e.target.value)}
-                          />
+                      value={searchText}
+                      onChange={e => setSearchText(e.target.value)}
+                  />
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <Button
                   type="default"
@@ -2890,14 +2919,14 @@ const ManageReservations: React.FC = () => {
                   arrow
                   getPopupContainer={() => document.body}
                 >
-                  <Button
-                    type="primary"
+                <Button
+                  type="primary"
                     style={{ height: 40, minHeight: 40, minWidth: 120, borderRadius: 12, fontWeight: 600, fontSize: 18, display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 2px 8px 0 rgba(62,75,224,0.08)' }}
                     aria-label="Actions"
                     disabled={isActionsDisabled}
                   >
                     Actions <RightOutlined />
-                  </Button>
+                </Button>
                 </Dropdown>
               </div>
             </div>
@@ -2915,7 +2944,7 @@ const ManageReservations: React.FC = () => {
                           <div style={{ display: 'flex', alignItems: 'center', marginTop: 12, width: '100%' }}>
                             <div style={{ flex: 1, textAlign: 'left', fontSize: 15, color: '#222' }}>
                               Total {paginationTotal} results
-                  </div>
+              </div>
               <div style={{ flex: 2, display: 'flex', justifyContent: 'center' }}>
                 <Pagination
                                 current={currentPage}
@@ -2926,7 +2955,7 @@ const ManageReservations: React.FC = () => {
                                 onChange={(page, size) => { setCurrentPage(page); setPageSize(size); }}
                   showQuickJumper={false}
                                 aria-label="All Reservations Pagination"
-                                style={{ margin: 0 }}
+                  style={{ margin: 0 }}
                 />
               </div>
                             <div style={{ flex: 1, textAlign: 'right' }}>
@@ -2964,7 +2993,7 @@ const ManageReservations: React.FC = () => {
                           >
                             <div style={modalBodyStyle}>
                               Proceeding will check out all the guests linked to this reservation. Please ensure all dues are settled and necessary details have been recorded before continuing. This action will update the reservation status to Checked-Out.
-                </div>
+              </div>
                             {modalButtonRow(
                               'Yes, Check-Out',
                               'No, Cancel',
@@ -3044,52 +3073,96 @@ const ManageReservations: React.FC = () => {
                     children: (
                       <>
                         <div className="batch-folio-toolbar">
-                    <Input.Search
-                            placeholder="Search for Arrivals (e.g. guest name, room, POC)"
+                          <Input.Search
+                            placeholder="Search for reservation/CRS ID, POC, group name"
                             allowClear
-                      enterButton={<SearchOutlined />}
+                            enterButton={<SearchOutlined />}
                             size="large"
                             style={{ width: 400, height: 40 }}
                             aria-label="Search Today's Arrivals"
+                            value={searchTextArrivals}
+                            onChange={e => setSearchTextArrivals(e.target.value)}
                           />
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <Button
-                  type="default"
+                            <Button
+                              type="default"
                               className="batch-folio-toolbar-btn"
                               icon={<FunnelIcon style={{ width: 24, height: 24 }} />}
                               aria-label="Filter"
+                              onClick={() => setFilterDrawerOpen(true)}
                             />
-                  <Button
-                    type="default"
-                              className="batch-folio-toolbar-btn"
-                              icon={<CustomColumnIcon style={{ width: 24, height: 24 }} />}
-                              aria-label="Customize Columns"
-                            />
-                <Button
-                  type="default"
+                            <Dropdown
+                              overlay={<CustomizeColumnsDropdown />}
+                              trigger={["click"]}
+                              open={customizeOpen}
+                              onOpenChange={setCustomizeOpen}
+                              placement="bottomRight"
+                              arrow
+                            >
+                              <Button
+                                type="default"
+                                className="batch-folio-toolbar-btn"
+                                icon={<CustomColumnIcon style={{ width: 24, height: 24 }} />}
+                                aria-label="Customize Columns"
+                              />
+                            </Dropdown>
+                            <Button
+                              type="default"
                               className="batch-folio-toolbar-btn"
                               icon={<img src={Export2Icon} alt="Export" style={{ width: 24, height: 24 }} />}
-                  aria-label="Export"
+                              aria-label="Export"
                             />
-                <Button
-                  type="primary"
-                              style={{ height: 40, minHeight: 40, minWidth: 120, borderRadius: 8, fontWeight: 600, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}
-                              aria-label="Actions"
+                            <Dropdown
+                              overlay={actionsMenu}
+                              trigger={["click"]}
+                              placement="bottomRight"
+                              arrow
+                              getPopupContainer={() => document.body}
                             >
-                              Actions <RightOutlined />
-                </Button>
-              </div>
-            </div>
-            <div style={{ marginTop: 24 }}>
-                <Table
-                            columns={tableColumns}
-                            dataSource={tableData}
-                  pagination={false}
-                            scroll={{ x: 'max-content' }}
+                              <Button
+                                type="primary"
+                                style={{ height: 40, minHeight: 40, minWidth: 120, borderRadius: 12, fontWeight: 600, fontSize: 18, display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 2px 8px 0 rgba(62,75,224,0.08)' }}
+                                aria-label="Actions"
+                                disabled={isActionsDisabled}
+                              >
+                                Actions <RightOutlined />
+                              </Button>
+                            </Dropdown>
+                          </div>
+                        </div>
+                        <div style={{ marginTop: 24 }}>
+                          <Table
+                            rowSelection={rowSelection}
+                            columns={allReservationsColumns}
+                            dataSource={filteredPaginatedArrivals}
+                            pagination={false}
+                            scroll={{ x: 'max-content', y: 480 }}
                             bordered
                             aria-label="Today's Arrivals Table"
+                            locale={{ emptyText: 'No Data' }}
                           />
-            </div>
+                          <div style={{ display: 'flex', alignItems: 'center', marginTop: 12, width: '100%' }}>
+                            <div style={{ flex: 1, textAlign: 'left', fontSize: 15, color: '#222' }}>
+                              Total {filteredArrivals.length} results
+                            </div>
+                            <div style={{ flex: 2, display: 'flex', justifyContent: 'center' }}>
+                <Pagination
+                                current={currentPage}
+                  pageSize={pageSize}
+                                total={filteredArrivals.length}
+                  showSizeChanger
+                                pageSizeOptions={['10', '20', '50']}
+                                onChange={(page, size) => { setCurrentPage(page); setPageSize(size); }}
+                  showQuickJumper={false}
+                                aria-label="Today's Arrivals Pagination"
+                                style={{ margin: 0 }}
+                              />
+                            </div>
+                            <div style={{ flex: 1, textAlign: 'right' }}>
+                              {/* The page size selector is part of Pagination, so nothing extra needed here */}
+                            </div>
+                          </div>
+                        </div>
                       </>
                     )
                   },
@@ -3251,12 +3324,7 @@ const ManageReservations: React.FC = () => {
               }
             >
         <Form layout="vertical" style={{ marginTop: 8 }}>
-          <Form.Item style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontSize: 16, color: '#222' }}>Show past reservations</span>
-              <Switch checked={showPastReservations} onChange={setShowPastReservations} />
-            </div>
-          </Form.Item>
+          {/* Remove Show past reservations toggle for all tabs */}
           <Form.Item label={<span style={{ fontWeight: 500, fontSize: 15 }}>Type</span>} style={{ marginBottom: 20 }}>
             <Select
               mode="multiple"
@@ -3273,54 +3341,57 @@ const ManageReservations: React.FC = () => {
             />
           </Form.Item>
           <Form.Item label={<span style={{ fontWeight: 500, fontSize: 15 }}>Check-In - Check-Out Dates</span>} style={{ marginBottom: 20 }}>
-                  <DatePicker.RangePicker
+            <DatePicker.RangePicker
               value={filterDateRange}
               onChange={setFilterDateRange}
-                    style={{ width: '100%' }}
+              style={{ width: '100%' }}
               placeholder={['Start Date', 'End Date']}
-                  />
-                </Form.Item>
+            />
+          </Form.Item>
           <Form.Item label={<span style={{ fontWeight: 500, fontSize: 15 }}>Status</span>} style={{ marginBottom: 20 }}>
-                  <Select
-                    mode="multiple"
+            <Select
+              mode="multiple"
               value={filterStatus}
               onChange={setFilterStatus}
-                    style={{ width: '100%' }}
-                    placeholder="Select status"
-              options={statusOptions}
-                  />
-                </Form.Item>
+              style={{ width: '100%' }}
+              placeholder="Select status"
+              options={activeTab === '2' ? [
+                { value: 'Unconfirmed', label: 'Unconfirmed' },
+                { value: 'Confirmed', label: 'Confirmed' },
+              ] : statusOptions}
+            />
+          </Form.Item>
           <Form.Item label={<span style={{ fontWeight: 500, fontSize: 15 }}>Room/Space Type</span>} style={{ marginBottom: 20 }}>
-                  <Select
-                    mode="multiple"
+            <Select
+              mode="multiple"
               value={filterRoomType}
               onChange={setFilterRoomType}
-                    style={{ width: '100%' }}
-                    placeholder="Select room/space type"
+              style={{ width: '100%' }}
+              placeholder="Select room/space type"
               options={roomTypeOptions}
-                  />
-                </Form.Item>
+            />
+          </Form.Item>
           <Form.Item label={<span style={{ fontWeight: 500, fontSize: 15 }}>Business Source</span>} style={{ marginBottom: 20 }}>
-                  <Select
-                    mode="multiple"
+            <Select
+              mode="multiple"
               value={filterBusinessSource}
               onChange={setFilterBusinessSource}
-                    style={{ width: '100%' }}
-                    placeholder="Select business source"
+              style={{ width: '100%' }}
+              placeholder="Select business source"
               options={businessSourceOptions}
-                  />
-                </Form.Item>
+            />
+          </Form.Item>
           <Form.Item label={<span style={{ fontWeight: 500, fontSize: 15 }}>Loyalty Status</span>} style={{ marginBottom: 0 }}>
-                  <Select
+            <Select
               value={filterLoyaltyStatus}
               onChange={setFilterLoyaltyStatus}
-                    style={{ width: '100%' }}
+              style={{ width: '100%' }}
               placeholder="Select loyalty status"
-                    options={loyaltyStatusOptions}
-                    allowClear
-                  />
-                </Form.Item>
-              </Form>
+              options={loyaltyStatusOptions}
+              allowClear
+            />
+          </Form.Item>
+        </Form>
             </Drawer>
     </div>
   );
