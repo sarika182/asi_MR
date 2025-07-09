@@ -710,6 +710,15 @@ const ManageReservations: React.FC = () => {
 
   const [activeModal, setActiveModal] = useState<null | { type: string; record: any }>(null);
 
+  // --- Add/Update state at the top of the component ---
+  const [showPastReservations, setShowPastReservations] = useState(false);
+  const [filterType, setFilterType] = useState<string[]>([]);
+  const [filterStatus, setFilterStatus] = useState<string[]>([]);
+  const [filterRoomType, setFilterRoomType] = useState<string[]>([]);
+  const [filterBusinessSource, setFilterBusinessSource] = useState<string[]>([]);
+  const [filterLoyaltyStatus, setFilterLoyaltyStatus] = useState<string | undefined>(undefined);
+  const [filterDateRange, setFilterDateRange] = useState<any>(null);
+
   React.useEffect(() => {
     if (searchText.trim() && activeTab === '1') {
       const lower = searchText.trim().toLowerCase();
@@ -2366,8 +2375,8 @@ const ManageReservations: React.FC = () => {
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span>{value}</span>
           {record.isGroup && (
-            <Tooltip title="Group Reservation">
-              <img src={UsersIcon} alt="Group" style={{ width: 16, height: 16, opacity: 0.7, cursor: 'pointer' }} />
+            <Tooltip title="Group Name">
+              <img src={UsersIcon} alt="Group Name" style={{ width: 16, height: 16, opacity: 0.7, cursor: 'pointer' }} />
             </Tooltip>
           )}
           {record.holdId && (
@@ -2779,6 +2788,20 @@ const ManageReservations: React.FC = () => {
   const infoIcon = <InfoCircleFilled style={{ color: '#3E4BE0', fontSize: 20, width: 20, height: 20 }} />;
   const errorIcon = <CloseCircleFilled style={{ color: '#E34B3E', fontSize: 20, width: 20, height: 20 }} />;
 
+  // Add a helper to check if any filter is set
+  const isAnyFilterSet = (
+    showPastReservations ||
+    (filterType && filterType.length > 0) ||
+    (filterStatus && filterStatus.length > 0) ||
+    (filterRoomType && filterRoomType.length > 0) ||
+    (filterBusinessSource && filterBusinessSource.length > 0) ||
+    !!filterLoyaltyStatus ||
+    !!filterDateRange
+  );
+
+  // Compute filtered results count (replace with your actual filter logic if needed)
+  const filteredResultsCount = isAnyFilterSet ? filteredData.length : 0;
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <Sidebar />
@@ -2799,26 +2822,36 @@ const ManageReservations: React.FC = () => {
                       <>
                         <div className="batch-folio-toolbar">
                   <Input.Search
-                            placeholder="Search for res/CRS/hold ID, POC, room/space name, group"
+                            placeholder="Search for reservation/CRS/hold ID, POC, group name"
                             allowClear
                     enterButton={<SearchOutlined />}
                             size="large"
                             style={{ width: 400, height: 40 }}
                             aria-label="Search All Reservations"
                           />
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <Button
                   type="default"
                               className="batch-folio-toolbar-btn"
                               icon={<FunnelIcon style={{ width: 24, height: 24 }} />}
                               aria-label="Filter"
+                  onClick={() => setFilterDrawerOpen(true)}
                             />
+                <Dropdown
+                  overlay={<CustomizeColumnsDropdown />}
+                  trigger={["click"]}
+                  open={customizeOpen}
+                  onOpenChange={setCustomizeOpen}
+                  placement="bottomRight"
+                  arrow
+                >
                   <Button
                     type="default"
-                              className="batch-folio-toolbar-btn"
-                              icon={<CustomColumnIcon style={{ width: 24, height: 24 }} />}
-                              aria-label="Customize Columns"
-                            />
+                      className="batch-folio-toolbar-btn"
+                      icon={<CustomColumnIcon style={{ width: 24, height: 24 }} />}
+                      aria-label="Customize Columns"
+                    />
+                </Dropdown>
                 <Button
                   type="default"
                               className="batch-folio-toolbar-btn"
@@ -2847,7 +2880,7 @@ const ManageReservations: React.FC = () => {
                           <div style={{ display: 'flex', alignItems: 'center', marginTop: 12, width: '100%' }}>
                             <div style={{ flex: 1, textAlign: 'left', fontSize: 15, color: '#222' }}>
                               Total {paginationTotal} results
-              </div>
+                  </div>
               <div style={{ flex: 2, display: 'flex', justifyContent: 'center' }}>
                 <Pagination
                                 current={currentPage}
@@ -2876,7 +2909,7 @@ const ManageReservations: React.FC = () => {
                   >
                             <div style={modalBodyStyle}>
                               Proceeding will check in all the guests linked to this reservation. Please ensure all pre-check-in requirements are complete.
-                </div>
+                  </div>
                             {modalButtonRow(
                               'Yes, Check-In',
                               'No, Cancel',
@@ -2896,7 +2929,7 @@ const ManageReservations: React.FC = () => {
                           >
                             <div style={modalBodyStyle}>
                               Proceeding will check out all the guests linked to this reservation. Please ensure all dues are settled and necessary details have been recorded before continuing. This action will update the reservation status to Checked-Out.
-                            </div>
+                </div>
                             {modalButtonRow(
                               'Yes, Check-Out',
                               'No, Cancel',
@@ -2916,7 +2949,7 @@ const ManageReservations: React.FC = () => {
             >
                             <div style={modalBodyStyle}>
                               Proceeding will transfer out this reservation from the property. This action cannot be undone.
-                            </div>
+                </div>
                             {modalButtonRow(
                               'Yes, Transfer Out',
                               'No, Cancel',
@@ -2936,7 +2969,7 @@ const ManageReservations: React.FC = () => {
                           >
                             <div style={modalBodyStyle}>
                 Proceeding will mark this reservation as a no-show. This action cannot be undone and a new reservation would have to be made if the guest plans to book again.
-                            </div>
+                </div>
                             {modalButtonRow(
                               'Yes, Mark as No-Show',
                               'No, Cancel',
@@ -3065,18 +3098,18 @@ const ManageReservations: React.FC = () => {
                             >
                               Actions <RightOutlined />
                   </Button>
+                  </div>
                 </div>
-                        </div>
-                        <div style={{ marginTop: 24 }}>
-                          <Table
+            <div style={{ marginTop: 24 }}>
+                <Table
                             columns={tableColumns}
                             dataSource={tableData}
-                            pagination={false}
+                  pagination={false}
                             scroll={{ x: 'max-content' }}
                             bordered
                             aria-label="In-House Table"
-                          />
-                        </div>
+                />
+            </div>
                       </>
                     )
                   },
@@ -3120,8 +3153,8 @@ const ManageReservations: React.FC = () => {
                             >
                               Actions <RightOutlined />
                 </Button>
-                          </div>
-                        </div>
+              </div>
+              </div>
                         <div style={{ marginTop: 24 }}>
                           <Table
                             columns={tableColumns}
@@ -3131,7 +3164,7 @@ const ManageReservations: React.FC = () => {
                             bordered
                             aria-label="Today's Pending Check-Out Table"
                           />
-                        </div>
+              </div>
                       </>
                     )
                   },
@@ -3139,8 +3172,121 @@ const ManageReservations: React.FC = () => {
               />
             </div>
           </div>
-        </div>
-      </div>
+              </div>
+            </div>
+            <Drawer
+              title={
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <span style={{ fontWeight: 600, fontSize: 18 }}>Filters</span>
+                  <Button
+                    type="default"
+              icon={<img src={EraserIcon} alt="Clear All" style={{ width: 20, height: 20, marginRight: 6 }} />}
+              style={{ border: '1px solid #E0E0E0', borderRadius: 8, fontWeight: 500, fontSize: 16, background: '#fff', color: '#222', padding: '0 16px', height: 40 }}
+                    onClick={() => {
+                setShowPastReservations(false);
+                setFilterType([]);
+                setFilterStatus([]);
+                setFilterRoomType([]);
+                setFilterBusinessSource([]);
+                setFilterLoyaltyStatus(undefined);
+                setFilterDateRange(null);
+              }}
+                  >
+                    Clear All
+                  </Button>
+                </div>
+              }
+              placement="right"
+        width={400}
+              onClose={() => setFilterDrawerOpen(false)}
+              open={filterDrawerOpen}
+              bodyStyle={{ padding: 24 }}
+              footer={
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
+            <Button type="text" style={{ fontSize: 16, color: '#222' }} onClick={() => setFilterDrawerOpen(false)}>Cancel</Button>
+                  <Button
+                    type="primary"
+              style={{ height: 40, minWidth: 120, borderRadius: 8, fontWeight: 500, fontSize: 16, background: isAnyFilterSet ? '#3E4BE0' : '#E0E0E0', color: isAnyFilterSet ? '#fff' : '#BFBFBF', boxShadow: isAnyFilterSet ? '0 2px 8px 0 rgba(62,75,224,0.08)' : undefined }}
+              onClick={() => { if (isAnyFilterSet) setFilterDrawerOpen(false); }}
+              disabled={!isAnyFilterSet}
+            >
+              Show {filteredResultsCount} Results
+                  </Button>
+                </div>
+              }
+            >
+        <Form layout="vertical" style={{ marginTop: 8 }}>
+          <Form.Item style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ fontSize: 16, color: '#222' }}>Show past reservations</span>
+              <Switch checked={showPastReservations} onChange={setShowPastReservations} />
+            </div>
+          </Form.Item>
+          <Form.Item label={<span style={{ fontWeight: 500, fontSize: 15 }}>Type</span>} style={{ marginBottom: 20 }}>
+            <Select
+              mode="multiple"
+              value={filterType}
+              onChange={setFilterType}
+              style={{ width: '100%' }}
+              placeholder="Select type"
+              options={[
+                { value: 'Reservations', label: 'Reservations' },
+                { value: 'Courtesy Holds', label: 'Courtesy Holds' },
+                { value: 'Unposted', label: 'Unposted' },
+              ]}
+              maxTagCount={2}
+            />
+          </Form.Item>
+          <Form.Item label={<span style={{ fontWeight: 500, fontSize: 15 }}>Check-In - Check-Out Dates</span>} style={{ marginBottom: 20 }}>
+                  <DatePicker.RangePicker
+              value={filterDateRange}
+              onChange={setFilterDateRange}
+                    style={{ width: '100%' }}
+              placeholder={['Start Date', 'End Date']}
+                  />
+                </Form.Item>
+          <Form.Item label={<span style={{ fontWeight: 500, fontSize: 15 }}>Status</span>} style={{ marginBottom: 20 }}>
+                  <Select
+                    mode="multiple"
+              value={filterStatus}
+              onChange={setFilterStatus}
+                    style={{ width: '100%' }}
+                    placeholder="Select status"
+              options={statusOptions}
+                  />
+                </Form.Item>
+          <Form.Item label={<span style={{ fontWeight: 500, fontSize: 15 }}>Room/Space Type</span>} style={{ marginBottom: 20 }}>
+                  <Select
+                    mode="multiple"
+              value={filterRoomType}
+              onChange={setFilterRoomType}
+                    style={{ width: '100%' }}
+                    placeholder="Select room/space type"
+              options={roomTypeOptions}
+                  />
+                </Form.Item>
+          <Form.Item label={<span style={{ fontWeight: 500, fontSize: 15 }}>Business Source</span>} style={{ marginBottom: 20 }}>
+                  <Select
+                    mode="multiple"
+              value={filterBusinessSource}
+              onChange={setFilterBusinessSource}
+                    style={{ width: '100%' }}
+                    placeholder="Select business source"
+              options={businessSourceOptions}
+                  />
+                </Form.Item>
+          <Form.Item label={<span style={{ fontWeight: 500, fontSize: 15 }}>Loyalty Status</span>} style={{ marginBottom: 0 }}>
+                  <Select
+              value={filterLoyaltyStatus}
+              onChange={setFilterLoyaltyStatus}
+                    style={{ width: '100%' }}
+              placeholder="Select loyalty status"
+                    options={loyaltyStatusOptions}
+                    allowClear
+                  />
+                </Form.Item>
+              </Form>
+            </Drawer>
     </div>
   );
 };
