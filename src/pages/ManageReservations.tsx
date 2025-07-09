@@ -3,7 +3,7 @@ import './BatchFolio.css';
 import Sidebar from '../components/Sidebar';
 import HeaderBar from '../components/HeaderBar';
 import { Tabs, Input, Button, Table, Pagination, Tooltip, Drawer, Select, DatePicker, Form, Modal, Dropdown, Checkbox, Menu, Switch } from 'antd';
-import { SearchOutlined, InfoCircleFilled, RightOutlined, CloseCircleFilled } from '@ant-design/icons';
+import { SearchOutlined, InfoCircleFilled, RightOutlined, CloseCircleFilled, MoreOutlined } from '@ant-design/icons';
 import { ReactComponent as FunnelIcon } from '../assets/Icons/FunnelIcon.svg';
 import { ReactComponent as CustomColumnIcon } from '../assets/Icons/custom_column.svg';
 import { ReactComponent as CancelModalIcon } from '../assets/Icons/cancelmodal.svg';
@@ -987,6 +987,10 @@ const ManageReservations: React.FC = () => {
       currentColumns = unpostedCustomColumns;
       setColumns = setUnpostedCustomColumns;
     }
+    // Remove 'Status' for In-House tab
+    if (activeTab === '4') {
+      currentColumns = currentColumns.filter(col => col.key !== 'reservation');
+    }
     return (
     <div style={{ minWidth: 240, background: '#fff', borderRadius: 8, boxShadow: '0 6px 16px 0 rgba(0,0,0,0.08),0 3px 6px -4px rgba(0,0,0,0.12),0 9px 28px 8px rgba(0,0,0,0.05)', padding: 4 }}>
       <div style={{ fontWeight: 600, fontSize: 14, padding: '12px 16px 8px 16px', borderBottom: '1px solid #f0f0f0' }}>Customize columns</div>
@@ -1005,7 +1009,7 @@ const ManageReservations: React.FC = () => {
       </div>
     </div>
   );
-  }
+  };
 
   // Insert the new Type column after Res. ID and freeze it
   const typeColumn = {
@@ -2101,13 +2105,15 @@ const ManageReservations: React.FC = () => {
       dataIndex: 'checkbox',
       key: 'checkbox',
       width: 48,
+      fixed: 'left' as const,
       render: () => null, // handled by rowSelection
     },
     {
-      title: 'Res. ID',
+      title: 'Reservation ID',
       dataIndex: 'resId',
       key: 'resId',
-      width: 120,
+      width: 140,
+      fixed: 'left' as const,
       render: (value: string, record: any) => (
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span>{value}</span>
@@ -2120,16 +2126,11 @@ const ManageReservations: React.FC = () => {
       ),
     },
     {
-      title: 'Booking Date',
-      dataIndex: 'bookingDate',
-      key: 'bookingDate',
-      width: 120,
-    },
-    {
       title: 'Check-In',
       dataIndex: 'checkIn',
       key: 'checkIn',
       width: 140,
+      fixed: 'left' as const,
       render: (value: string) => {
         const [date, time] = value.split('\n');
         return (
@@ -2145,6 +2146,7 @@ const ManageReservations: React.FC = () => {
       dataIndex: 'checkOut',
       key: 'checkOut',
       width: 140,
+      fixed: 'left' as const,
       render: (value: string) => {
         const [date, time] = value.split('\n');
         return (
@@ -2160,7 +2162,14 @@ const ManageReservations: React.FC = () => {
       dataIndex: 'poc',
       key: 'poc',
       width: 180,
+      fixed: 'left' as const,
       render: (value: any) => value,
+    },
+    {
+      title: 'Booking Date',
+      dataIndex: 'bookingDate',
+      key: 'bookingDate',
+      width: 120,
     },
     {
       title: 'Room/Space Name',
@@ -2179,11 +2188,18 @@ const ManageReservations: React.FC = () => {
       dataIndex: 'businessSource',
       key: 'businessSource',
       width: 160,
-      render: (value: any, record: any) => (
+      render: (value: any, record: any, idx: number) => {
+        // Always show a 6-digit subtext
+        let sub = record.crsId;
+        if (!sub) {
+          // Generate a 6-digit number based on row index if missing
+          sub = String(100000 + idx * 111111).slice(0, 6);
+        }
+        return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <div>
             <div>{value}</div>
-            {record.crsId && <div style={{ color: '#888', fontSize: 13, lineHeight: '18px' }}>{record.crsId}</div>}
+              <div style={{ color: '#888', fontSize: 13, lineHeight: '18px' }}>{sub}</div>
           </div>
           {record.isCrown && (
             <Tooltip title="Genius">
@@ -2191,7 +2207,8 @@ const ManageReservations: React.FC = () => {
             </Tooltip>
           )}
         </div>
-      ),
+        );
+      },
     },
     {
       title: 'Cancellation Policy',
@@ -2225,8 +2242,27 @@ const ManageReservations: React.FC = () => {
       key: 'actions',
       fixed: 'right' as 'right',
       width: 64,
-      render: () => (
-        <span style={{ cursor: 'pointer' }}>...</span>
+      render: (_: any, record: any) => (
+        <Dropdown
+          overlay={
+            <Menu>
+              <Menu.Item key="checkout">Check-Out</Menu.Item>
+            </Menu>
+          }
+          trigger={["click"]}
+          placement="bottomRight"
+          arrow
+        >
+          <Button
+            type="text"
+            icon={<MoreOutlined style={{ fontSize: 20 }} />}
+            aria-label="Actions"
+            tabIndex={0}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
+            }}
+          />
+        </Dropdown>
       ),
     },
   ];
@@ -2854,6 +2890,51 @@ const ManageReservations: React.FC = () => {
     return filteredArrivals.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   }, [filteredArrivals, currentPage, pageSize]);
 
+  // Generate sequential booking dates for inHouseData
+  const inHouseStartDate = dayjs('2024-12-21');
+  const inHouseDataWithBookingDate = inHouseData.map((row, idx) => ({
+    ...row,
+    bookingDate: row.bookingDate || inHouseStartDate.subtract(idx, 'day').format('MMM DD, YYYY'),
+  }));
+
+  // Helper to extract text from React element for POC name/email
+  function extractTextFromPoc(poc: any) {
+    if (!poc) return { name: '', email: '' };
+    if (typeof poc === 'string') return { name: poc, email: '' };
+    if (poc.props && poc.props.children) {
+      const children = poc.props.children;
+      if (Array.isArray(children)) {
+        const name = typeof children[0] === 'string' ? children[0] : '';
+        const email = children[2]?.props?.children || '';
+        return { name, email };
+      }
+      if (typeof children === 'string') {
+        return { name: children, email: '' };
+      }
+    }
+    return { name: '', email: '' };
+  }
+
+  // Move this line above filteredInHouse:
+  const [searchTextInHouse, setSearchTextInHouse] = useState("");
+
+  const filteredInHouse = React.useMemo(() => {
+    if (!searchTextInHouse.trim()) return inHouseDataWithBookingDate;
+    const lower = searchTextInHouse.trim().toLowerCase();
+    return inHouseDataWithBookingDate.filter(row => {
+      const resId = row.resId?.toLowerCase() || '';
+      const { name: pocName, email: pocEmail } = extractTextFromPoc(row.poc);
+      return (
+        resId.includes(lower) ||
+        pocName.toLowerCase().includes(lower) ||
+        pocEmail.toLowerCase().includes(lower)
+      );
+    });
+  }, [searchTextInHouse, inHouseDataWithBookingDate]);
+  const filteredPaginatedInHouse = React.useMemo(() => {
+    return filteredInHouse.slice((currentPage - 1) * pageSize, pageSize * currentPage);
+  }, [filteredInHouse, currentPage, pageSize]);
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <Sidebar />
@@ -2928,8 +3009,8 @@ const ManageReservations: React.FC = () => {
                     Actions <RightOutlined />
                 </Button>
                 </Dropdown>
-              </div>
-            </div>
+                    </div>
+                    </div>
             <div style={{ marginTop: 24 }}>
                 <Table
                   rowSelection={rowSelection}
@@ -2944,7 +3025,7 @@ const ManageReservations: React.FC = () => {
                           <div style={{ display: 'flex', alignItems: 'center', marginTop: 12, width: '100%' }}>
                             <div style={{ flex: 1, textAlign: 'left', fontSize: 15, color: '#222' }}>
                               Total {paginationTotal} results
-              </div>
+                  </div>
               <div style={{ flex: 2, display: 'flex', justifyContent: 'center' }}>
                 <Pagination
                                 current={currentPage}
@@ -3073,10 +3154,10 @@ const ManageReservations: React.FC = () => {
                     children: (
                       <>
                         <div className="batch-folio-toolbar">
-                          <Input.Search
+                    <Input.Search
                             placeholder="Search for reservation/CRS ID, POC, group name"
                             allowClear
-                            enterButton={<SearchOutlined />}
+                      enterButton={<SearchOutlined />}
                             size="large"
                             style={{ width: 400, height: 40 }}
                             aria-label="Search Today's Arrivals"
@@ -3084,33 +3165,33 @@ const ManageReservations: React.FC = () => {
                             onChange={e => setSearchTextArrivals(e.target.value)}
                           />
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <Button
-                              type="default"
+                <Button
+                  type="default"
                               className="batch-folio-toolbar-btn"
                               icon={<FunnelIcon style={{ width: 24, height: 24 }} />}
                               aria-label="Filter"
-                              onClick={() => setFilterDrawerOpen(true)}
+                  onClick={() => setFilterDrawerOpen(true)}
                             />
-                            <Dropdown
-                              overlay={<CustomizeColumnsDropdown />}
-                              trigger={["click"]}
-                              open={customizeOpen}
-                              onOpenChange={setCustomizeOpen}
-                              placement="bottomRight"
-                              arrow
-                            >
-                              <Button
-                                type="default"
+                <Dropdown
+                  overlay={<CustomizeColumnsDropdown />}
+                  trigger={["click"]}
+                  open={customizeOpen}
+                  onOpenChange={setCustomizeOpen}
+                  placement="bottomRight"
+                  arrow
+                >
+                  <Button
+                    type="default"
                                 className="batch-folio-toolbar-btn"
                                 icon={<CustomColumnIcon style={{ width: 24, height: 24 }} />}
                                 aria-label="Customize Columns"
                               />
-                            </Dropdown>
-                            <Button
-                              type="default"
+                </Dropdown>
+                <Button
+                  type="default"
                               className="batch-folio-toolbar-btn"
                               icon={<img src={Export2Icon} alt="Export" style={{ width: 24, height: 24 }} />}
-                              aria-label="Export"
+                  aria-label="Export"
                             />
                             <Dropdown
                               overlay={actionsMenu}
@@ -3119,23 +3200,23 @@ const ManageReservations: React.FC = () => {
                               arrow
                               getPopupContainer={() => document.body}
                             >
-                              <Button
-                                type="primary"
+                <Button
+                  type="primary"
                                 style={{ height: 40, minHeight: 40, minWidth: 120, borderRadius: 12, fontWeight: 600, fontSize: 18, display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 2px 8px 0 rgba(62,75,224,0.08)' }}
                                 aria-label="Actions"
                                 disabled={isActionsDisabled}
                               >
                                 Actions <RightOutlined />
-                              </Button>
+                </Button>
                             </Dropdown>
-                          </div>
-                        </div>
-                        <div style={{ marginTop: 24 }}>
-                          <Table
-                            rowSelection={rowSelection}
+              </div>
+            </div>
+            <div style={{ marginTop: 24 }}>
+                <Table
+                  rowSelection={rowSelection}
                             columns={allReservationsColumns}
                             dataSource={filteredPaginatedArrivals}
-                            pagination={false}
+                  pagination={false}
                             scroll={{ x: 'max-content', y: 480 }}
                             bordered
                             aria-label="Today's Arrivals Table"
@@ -3179,6 +3260,8 @@ const ManageReservations: React.FC = () => {
                             size="large"
                             style={{ width: 400, height: 40 }}
                             aria-label="Search In-House"
+                            value={searchTextInHouse}
+                            onChange={e => setSearchTextInHouse(e.target.value)}
                           />
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                             <Button
@@ -3186,38 +3269,71 @@ const ManageReservations: React.FC = () => {
                               className="batch-folio-toolbar-btn"
                               icon={<FunnelIcon style={{ width: 24, height: 24 }} />}
                               aria-label="Filter"
+                              onClick={() => setFilterDrawerOpen(true)}
                             />
-                  <Button
-                    type="default"
-                              className="batch-folio-toolbar-btn"
-                              icon={<CustomColumnIcon style={{ width: 24, height: 24 }} />}
-                              aria-label="Customize Columns"
-                            />
+                            <Dropdown
+                              overlay={<CustomizeColumnsDropdown />}
+                              trigger={["click"]}
+                              open={customizeOpen}
+                              onOpenChange={setCustomizeOpen}
+                              placement="bottomRight"
+                              arrow
+                            >
+                              <Button
+                                type="default"
+                                className="batch-folio-toolbar-btn"
+                                icon={<CustomColumnIcon style={{ width: 24, height: 24 }} />}
+                                aria-label="Customize Columns"
+                              />
+                            </Dropdown>
                             <Button
                               type="default"
                               className="batch-folio-toolbar-btn"
                               icon={<img src={Export2Icon} alt="Export" style={{ width: 24, height: 24 }} />}
                               aria-label="Export"
                             />
-                  <Button
-                    type="primary"
+                            <Button
+                              type="primary"
                               style={{ height: 40, minHeight: 40, minWidth: 120, borderRadius: 8, fontWeight: 600, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}
                               aria-label="Actions"
                             >
                               Actions <RightOutlined />
-                  </Button>
-                  </div>
-                </div>
-            <div style={{ marginTop: 24 }}>
+                            </Button>
+                          </div>
+                        </div>
+                        <div style={{ marginTop: 24 }}>
                 <Table
-                            columns={tableColumns}
-                            dataSource={tableData}
+                  rowSelection={rowSelection}
+                            columns={inHouseColumns}
+                            dataSource={filteredPaginatedInHouse}
                   pagination={false}
-                            scroll={{ x: 'max-content' }}
+                            scroll={{ x: 'max-content', y: 480 }}
                             bordered
                             aria-label="In-House Table"
+                            locale={{ emptyText: 'No Data' }}
+                          />
+                          <div style={{ display: 'flex', alignItems: 'center', marginTop: 12, width: '100%' }}>
+                            <div style={{ flex: 1, textAlign: 'left', fontSize: 15, color: '#222' }}>
+                              Total {filteredInHouse.length} results
+              </div>
+              <div style={{ flex: 2, display: 'flex', justifyContent: 'center' }}>
+                <Pagination
+                                current={currentPage}
+                  pageSize={pageSize}
+                                total={filteredInHouse.length}
+                                showSizeChanger
+                                pageSizeOptions={['10', '20', '50']}
+                                onChange={(page, size) => { setCurrentPage(page); setPageSize(size); }}
+                                showQuickJumper={false}
+                                aria-label="In-House Pagination"
+                  style={{ margin: 0 }}
                 />
-            </div>
+              </div>
+                            <div style={{ flex: 1, textAlign: 'right' }}>
+                              {/* The page size selector is part of Pagination, so nothing extra needed here */}
+                            </div>
+                          </div>
+                        </div>
                       </>
                     )
                   },
@@ -3324,7 +3440,6 @@ const ManageReservations: React.FC = () => {
               }
             >
         <Form layout="vertical" style={{ marginTop: 8 }}>
-          {/* Remove Show past reservations toggle for all tabs */}
           <Form.Item label={<span style={{ fontWeight: 500, fontSize: 15 }}>Type</span>} style={{ marginBottom: 20 }}>
             <Select
               mode="multiple"
@@ -3341,57 +3456,59 @@ const ManageReservations: React.FC = () => {
             />
           </Form.Item>
           <Form.Item label={<span style={{ fontWeight: 500, fontSize: 15 }}>Check-In - Check-Out Dates</span>} style={{ marginBottom: 20 }}>
-            <DatePicker.RangePicker
+                  <DatePicker.RangePicker
               value={filterDateRange}
               onChange={setFilterDateRange}
-              style={{ width: '100%' }}
+                    style={{ width: '100%' }}
               placeholder={['Start Date', 'End Date']}
-            />
-          </Form.Item>
-          <Form.Item label={<span style={{ fontWeight: 500, fontSize: 15 }}>Status</span>} style={{ marginBottom: 20 }}>
-            <Select
-              mode="multiple"
-              value={filterStatus}
-              onChange={setFilterStatus}
-              style={{ width: '100%' }}
-              placeholder="Select status"
-              options={activeTab === '2' ? [
-                { value: 'Unconfirmed', label: 'Unconfirmed' },
-                { value: 'Confirmed', label: 'Confirmed' },
-              ] : statusOptions}
-            />
-          </Form.Item>
+                  />
+                </Form.Item>
+          {activeTab !== '4' && (
+            <Form.Item label={<span style={{ fontWeight: 500, fontSize: 15 }}>Status</span>} style={{ marginBottom: 20 }}>
+                  <Select
+                    mode="multiple"
+                value={filterStatus}
+                onChange={setFilterStatus}
+                    style={{ width: '100%' }}
+                    placeholder="Select status"
+                options={activeTab === '2' ? [
+                  { value: 'Unconfirmed', label: 'Unconfirmed' },
+                  { value: 'Confirmed', label: 'Confirmed' },
+                ] : statusOptions}
+                  />
+                </Form.Item>
+                  )}
           <Form.Item label={<span style={{ fontWeight: 500, fontSize: 15 }}>Room/Space Type</span>} style={{ marginBottom: 20 }}>
-            <Select
-              mode="multiple"
+                  <Select
+                    mode="multiple"
               value={filterRoomType}
               onChange={setFilterRoomType}
-              style={{ width: '100%' }}
-              placeholder="Select room/space type"
+                    style={{ width: '100%' }}
+                    placeholder="Select room/space type"
               options={roomTypeOptions}
-            />
-          </Form.Item>
+                  />
+                </Form.Item>
           <Form.Item label={<span style={{ fontWeight: 500, fontSize: 15 }}>Business Source</span>} style={{ marginBottom: 20 }}>
-            <Select
-              mode="multiple"
+                  <Select
+                    mode="multiple"
               value={filterBusinessSource}
               onChange={setFilterBusinessSource}
-              style={{ width: '100%' }}
-              placeholder="Select business source"
+                    style={{ width: '100%' }}
+                    placeholder="Select business source"
               options={businessSourceOptions}
-            />
-          </Form.Item>
+                  />
+                </Form.Item>
           <Form.Item label={<span style={{ fontWeight: 500, fontSize: 15 }}>Loyalty Status</span>} style={{ marginBottom: 0 }}>
-            <Select
+                  <Select
               value={filterLoyaltyStatus}
               onChange={setFilterLoyaltyStatus}
-              style={{ width: '100%' }}
+                    style={{ width: '100%' }}
               placeholder="Select loyalty status"
-              options={loyaltyStatusOptions}
-              allowClear
-            />
-          </Form.Item>
-        </Form>
+                    options={loyaltyStatusOptions}
+                    allowClear
+                  />
+                </Form.Item>
+              </Form>
             </Drawer>
     </div>
   );
