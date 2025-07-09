@@ -42,6 +42,7 @@ import TagConfirmedIcon from '../assets/tags/TagConfirmed.svg';
 import TagUnconfirmedIcon from '../assets/tags/TagUnconfirmed.svg';
 import PrepaidIcon from '../assets/Icons/prepaid.svg';
 import Export2Icon from '../assets/Icons/export2.svg';
+import NoDataImage from '../assets/No Data/nodataimage.svg';
 
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
@@ -613,7 +614,6 @@ const ManageReservations: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchText, setSearchText] = useState('');
-  const [filteredData, setFilteredData] = useState(data);
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('1');
   const searchInputRef = React.useRef<any>(null);
@@ -719,50 +719,6 @@ const ManageReservations: React.FC = () => {
   const [filterLoyaltyStatus, setFilterLoyaltyStatus] = useState<string | undefined>(undefined);
   const [filterDateRange, setFilterDateRange] = useState<any>(null);
 
-  React.useEffect(() => {
-    if (searchText.trim() && activeTab === '1') {
-      const lower = searchText.trim().toLowerCase();
-      const results = data.filter(row => {
-        const pocName = row.poc?.props?.children?.[0] || '';
-        const pocEmail = row.poc?.props?.children?.[2]?.props?.children || '';
-        const roomName = row.roomName || '';
-        return (
-          row.resId.toLowerCase().includes(lower) ||
-          (typeof pocName === 'string' && pocName.toLowerCase().includes(lower)) ||
-          (typeof pocEmail === 'string' && pocEmail.toLowerCase().includes(lower)) ||
-          (typeof roomName === 'string' && roomName.toLowerCase().includes(lower))
-        );
-      });
-      setFilteredData(results);
-      setDropdownVisible(results.length > 0);
-    } else if (activeTab === '1') {
-      setFilteredData(data);
-      setDropdownVisible(false);
-    }
-  }, [searchText, activeTab, data]);
-
-  const handleSearch = (value: string) => {
-    setSearchText(value);
-    if (activeTab === '1') {
-      if (value.trim()) {
-        const lower = value.trim().toLowerCase();
-        const filtered = data.filter(row => {
-          const pocName = row.poc?.props?.children?.[0] || '';
-          const pocEmail = row.poc?.props?.children?.[2]?.props?.children || '';
-          return (
-            row.resId.toLowerCase().includes(lower) ||
-            (typeof pocName === 'string' && pocName.toLowerCase().includes(lower)) ||
-            (typeof pocEmail === 'string' && pocEmail.toLowerCase().includes(lower)) ||
-            (row.roomName && row.roomName.toLowerCase().includes(lower))
-          );
-        });
-        setFilteredData(filtered);
-      } else {
-        setFilteredData(data);
-      }
-    }
-  };
-
   const handleDropdownClick = (row: any) => {
     setDropdownVisible(false);
     setSearchText('');
@@ -772,7 +728,6 @@ const ManageReservations: React.FC = () => {
   const onTabChange = (key: string) => {
     setActiveTab(key);
     setSearchText('');
-    setFilteredData(data);
     setDropdownVisible(false);
   };
 
@@ -947,6 +902,7 @@ const ManageReservations: React.FC = () => {
   };
 
   const customColumnOptions = [
+    { key: 'bookingDate', label: 'Booking Date' },
     { key: 'reservation', label: 'Status' },
     { key: 'roomName', label: 'Room/Space Name' },
     { key: 'roomType', label: 'Room/Space Type' },
@@ -2799,8 +2755,75 @@ const ManageReservations: React.FC = () => {
     !!filterDateRange
   );
 
-  // Compute filtered results count (replace with your actual filter logic if needed)
-  const filteredResultsCount = isAnyFilterSet ? filteredData.length : 0;
+  // 1. Add helper to get status from row (using tag SVG mapping)
+  const getStatusFromRow = (row: any) => {
+    if (!row) return '';
+    if (row.reservation && typeof row.reservation === 'object' && row.reservation.props && row.reservation.props.src) {
+      const src = row.reservation.props.src;
+      if (src.includes('TagUnconfirmed.svg')) return 'Unconfirmed';
+      if (src.includes('TagConfirmed.svg')) return 'Confirmed';
+      if (src.includes('TagInhouse.svg')) return 'Inhouse';
+      if (src.includes('TagNo-Show.svg')) return 'No-Show';
+      if (src.includes('TagCancelled.svg')) return 'Cancelled';
+      if (src.includes('TagTransfer Out.svg')) return 'Transfer Out';
+      if (src.includes('TagCheckedout.svg')) return 'Checked-Out';
+    }
+    return '';
+  };
+
+  // 2. Compute selected statuses
+  const selectedRows = paginatedData.filter(row => selectedRowKeys.includes(row.key));
+  const selectedStatuses = selectedRows.map(getStatusFromRow);
+  const uniqueStatuses = Array.from(new Set(selectedStatuses));
+
+  // 3. Determine Actions CTA state and menu
+  let actionsMenu = null;
+  let isActionsDisabled = selectedRowKeys.length === 0;
+  if (!isActionsDisabled) {
+    if (uniqueStatuses.length === 1 && (uniqueStatuses[0] === 'Inhouse')) {
+      actionsMenu = (
+        <Menu>
+          <Menu.Item key="checkout">Check-Out</Menu.Item>
+        </Menu>
+      );
+      isActionsDisabled = false;
+    } else if (uniqueStatuses.every(s => s === 'Unconfirmed' || s === 'Confirmed')) {
+      actionsMenu = (
+        <Menu>
+          <Menu.Item key="checkin">Check-In</Menu.Item>
+          <Menu.Item key="noshow">No-Show Reservation</Menu.Item>
+          <Menu.Item key="transfer">Transfer Out Reservation</Menu.Item>
+          <Menu.Item key="cancel" danger>Cancel Reservation</Menu.Item>
+        </Menu>
+      );
+      isActionsDisabled = false;
+    } else if (uniqueStatuses.some(s => ['Unconfirmed','Inhouse','No-Show','Cancelled','Confirmed','Transfer Out','Checked-Out'].includes(s)) && uniqueStatuses.length > 1) {
+      actionsMenu = null;
+      isActionsDisabled = true;
+    }
+  }
+  if (!actionsMenu) actionsMenu = <Menu></Menu>;
+
+  // Remove filteredData state for All Reservations (if present)
+  // Use searchText and allReservationsData to compute filteredPaginatedData
+  const filteredAllReservations = React.useMemo(() => {
+    if (!searchText.trim()) return allReservationsData;
+    const lower = searchText.trim().toLowerCase();
+    return allReservationsData.filter(row => {
+      const resId = row.resId?.toLowerCase() || '';
+      const pocName = row.pocName?.toLowerCase?.() || '';
+      const pocEmail = row.pocEmail?.toLowerCase?.() || '';
+      return (
+        resId.includes(lower) ||
+        pocName.includes(lower) ||
+        pocEmail.includes(lower)
+      );
+    });
+  }, [searchText, allReservationsData]);
+
+  const filteredPaginatedData = React.useMemo(() => {
+    return filteredAllReservations.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  }, [filteredAllReservations, currentPage, pageSize]);
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
@@ -2828,6 +2851,8 @@ const ManageReservations: React.FC = () => {
                             size="large"
                             style={{ width: 400, height: 40 }}
                             aria-label="Search All Reservations"
+                            value={searchText}
+                            onChange={e => setSearchText(e.target.value)}
                           />
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <Button
@@ -2858,24 +2883,34 @@ const ManageReservations: React.FC = () => {
                               icon={<img src={Export2Icon} alt="Export" style={{ width: 24, height: 24 }} />}
                   aria-label="Export"
                             />
-                <Button
-                  type="primary"
-                              style={{ height: 40, minHeight: 40, minWidth: 120, borderRadius: 8, fontWeight: 600, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}
-                              aria-label="Actions"
+                <Dropdown
+                  overlay={actionsMenu}
+                  trigger={["click"]}
+                  placement="bottomRight"
+                  arrow
+                  getPopupContainer={() => document.body}
                 >
-                              Actions <RightOutlined />
-                </Button>
+                  <Button
+                    type="primary"
+                    style={{ height: 40, minHeight: 40, minWidth: 120, borderRadius: 12, fontWeight: 600, fontSize: 18, display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 2px 8px 0 rgba(62,75,224,0.08)' }}
+                    aria-label="Actions"
+                    disabled={isActionsDisabled}
+                  >
+                    Actions <RightOutlined />
+                  </Button>
+                </Dropdown>
               </div>
             </div>
             <div style={{ marginTop: 24 }}>
                 <Table
                   rowSelection={rowSelection}
                             columns={allReservationsColumns}
-                            dataSource={paginatedData}
+                            dataSource={filteredPaginatedData}
                   pagination={false}
                             scroll={{ x: 'max-content', y: 480 }}
                             bordered
                             aria-label="All Reservations Table"
+                            locale={{ emptyText: 'No Data' }}
                 />
                           <div style={{ display: 'flex', alignItems: 'center', marginTop: 12, width: '100%' }}>
                             <div style={{ flex: 1, textAlign: 'left', fontSize: 15, color: '#222' }}>
@@ -3210,7 +3245,7 @@ const ManageReservations: React.FC = () => {
               onClick={() => { if (isAnyFilterSet) setFilterDrawerOpen(false); }}
               disabled={!isAnyFilterSet}
             >
-              Show {filteredResultsCount} Results
+              Show {filteredAllReservations.length} Results
                   </Button>
                 </div>
               }
