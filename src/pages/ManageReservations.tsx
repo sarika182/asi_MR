@@ -3,7 +3,7 @@ import './BatchFolio.css';
 import Sidebar from '../components/Sidebar';
 import HeaderBar from '../components/HeaderBar';
 import { Tabs, Input, Button, Table, Pagination, Tooltip, Drawer, Select, DatePicker, Form, Modal, Dropdown, Checkbox, Menu, Switch } from 'antd';
-import { SearchOutlined, InfoCircleFilled } from '@ant-design/icons';
+import { SearchOutlined, InfoCircleFilled, RightOutlined, CloseCircleFilled } from '@ant-design/icons';
 import { ReactComponent as FunnelIcon } from '../assets/Icons/FunnelIcon.svg';
 import { ReactComponent as CustomColumnIcon } from '../assets/Icons/custom_column.svg';
 import { ReactComponent as CancelModalIcon } from '../assets/Icons/cancelmodal.svg';
@@ -41,6 +41,7 @@ import { Tooltip as AntdTooltip } from 'antd';
 import TagConfirmedIcon from '../assets/tags/TagConfirmed.svg';
 import TagUnconfirmedIcon from '../assets/tags/TagUnconfirmed.svg';
 import PrepaidIcon from '../assets/Icons/prepaid.svg';
+import Export2Icon from '../assets/Icons/export2.svg';
 
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
@@ -54,11 +55,8 @@ const iconButtonStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  boxSizing: 'border-box' as 'border-box',
+  boxSizing: 'border-box',
   borderRadius: 8,
-  background: '#fff',
-  border: '1px solid #E0E0E0',
-  boxShadow: '0 1px 2px 0 rgba(16,30,115,0.03)',
 };
 
 const iconStyle: React.CSSProperties = {
@@ -612,7 +610,7 @@ const data = [
 
 const ManageReservations: React.FC = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [current, setCurrent] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchText, setSearchText] = useState('');
   const [filteredData, setFilteredData] = useState(data);
@@ -710,6 +708,8 @@ const ManageReservations: React.FC = () => {
     { value: 'Expedia', label: 'Expedia' },
   ];
 
+  const [activeModal, setActiveModal] = useState<null | { type: string; record: any }>(null);
+
   React.useEffect(() => {
     if (searchText.trim() && activeTab === '1') {
       const lower = searchText.trim().toLowerCase();
@@ -804,7 +804,7 @@ const ManageReservations: React.FC = () => {
   }, [showRooms, showSpaces, updatedData]);
 
   // Use filteredAllReservationsDataByType for All Reservations tab
-  const pagedData = (activeTab === '1' ? filteredAllReservationsDataByType : data).slice((current - 1) * pageSize, current * pageSize);
+  const pagedData = (activeTab === '1' ? filteredAllReservationsDataByType : data).slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const getPendingFiltersForTab = () => {
     if (activeTab === '1') return pendingFiltersAll;
@@ -2280,6 +2280,505 @@ const ManageReservations: React.FC = () => {
     { key: '10', resId: '33889111', bookingDate: 'Jan 15, 2025', checkIn: 'Jan 21, 2025\n03:00 PM', checkOut: 'Jan 20, 2025\n11:00 AM', poc: (<div>Lane Hanli<br /><span style={{ color: '#888' }}>laura@terra.com</span></div>), roomName: '778', roomType: 'KNS', businessSource: 'Ctrip', crsId: '2378811', cancellationPolicy: 'Partial Refund', totalCharges: '50.00', amountPaid: '100.00', balance: '50.00' },
   ];
 
+  const searchInputStyle: React.CSSProperties = {
+    borderRadius: 24,
+    border: '1px solid #E0E0E0',
+    height: 48,
+    paddingLeft: 24,
+    paddingRight: 0,
+    fontSize: 20,
+    color: '#222',
+    background: '#fff',
+    boxShadow: 'none',
+    outline: 'none',
+  };
+  const searchPlaceholderStyle = { color: '#BFBFBF', fontSize: 20 };
+  const searchButtonStyle: React.CSSProperties = {
+    height: 48,
+    width: 56,
+    borderRadius: '0 24px 24px 0',
+    background: '#3E4BE0',
+    border: 'none',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: 'none',
+    cursor: 'pointer',
+  };
+
+  const CustomSearchField = ({ placeholder, ariaLabel }: { placeholder: string; ariaLabel: string }) => (
+    <div style={{ display: 'flex', alignItems: 'center', width: 480 }}>
+      <Input
+        style={searchInputStyle}
+        placeholder={placeholder}
+        aria-label={ariaLabel}
+        bordered={false}
+        size="large"
+        allowClear={false}
+        autoComplete="off"
+        inputMode="search"
+        tabIndex={0}
+        // @ts-ignore
+        className="custom-search-input"
+      />
+      <Button
+        type="primary"
+        aria-label="Search"
+        style={searchButtonStyle}
+        tabIndex={0}
+      >
+        <SearchOutlined style={{ fontSize: 22, color: '#fff' }} />
+      </Button>
+    </div>
+  );
+
+  // Table columns and mock data for 13 columns
+  const tableColumns = Array.from({ length: 13 }).map((_, i) => ({
+    title: `Column ${i + 1}`,
+    dataIndex: `col${i + 1}`,
+    key: `col${i + 1}`,
+  }));
+  const tableData = Array.from({ length: 10 }).map((_, i) => {
+    const row: any = { key: i };
+    for (let j = 1; j <= 13; j++) {
+      row[`col${j}`] = `Data ${i + 1}-${j}`;
+    }
+    return row;
+  });
+
+  // --- All Reservations Table Columns (Figma) ---
+  const allReservationsColumns = [
+    {
+      title: '',
+      dataIndex: 'checkbox',
+      key: 'checkbox',
+      width: 48,
+      render: (_: any, record: any) => null, // handled by rowSelection if needed
+      fixed: 'left' as const,
+    },
+    {
+      title: 'Reservation ID',
+      dataIndex: 'resId',
+      key: 'resId',
+      width: 140,
+      fixed: 'left' as const,
+      render: (value: string, record: any) => (
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span>{value}</span>
+          {record.isGroup && (
+            <Tooltip title="Group Reservation">
+              <img src={UsersIcon} alt="Group" style={{ width: 16, height: 16, opacity: 0.7, cursor: 'pointer' }} />
+            </Tooltip>
+          )}
+          {record.holdId && (
+            <span style={{ display: 'block', color: '#888', fontSize: 12, marginLeft: 4 }}>Hold ID: {record.holdId}</span>
+          )}
+          {record.unposted && (
+            <span style={{ display: 'block', color: '#888', fontSize: 12, marginLeft: 4 }}>Unposted</span>
+          )}
+        </span>
+      ),
+    },
+    {
+      title: 'Check-In',
+      dataIndex: 'checkIn',
+      key: 'checkIn',
+      width: 130,
+      fixed: 'left' as const,
+      render: (value: string) => {
+        const [date, time] = value.split('\n');
+        return (
+          <span>
+            {date}<br />
+            <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)' }}>{time}</span>
+          </span>
+        );
+      },
+    },
+    {
+      title: 'Check-Out',
+      dataIndex: 'checkOut',
+      key: 'checkOut',
+      width: 130,
+      fixed: 'left' as const,
+      render: (value: string) => {
+        const [date, time] = value.split('\n');
+        return (
+          <span>
+            {date}<br />
+            <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)' }}>{time}</span>
+          </span>
+        );
+      },
+    },
+    {
+      title: 'Point of Contact',
+      dataIndex: 'poc',
+      key: 'poc',
+      width: 180,
+      fixed: 'left' as const,
+      render: (value: any, record: any) => (
+        <span>
+          {record.pocName}<br />
+          <span style={{ color: '#888', fontSize: 12 }}>{record.pocEmail}</span>
+        </span>
+      ),
+    },
+    {
+      title: 'Booking Date',
+      dataIndex: 'bookingDate',
+      key: 'bookingDate',
+      width: 120,
+      render: (value: string) => value,
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      width: 120,
+      render: (status: string) => {
+        const tagMap: Record<string, string> = {
+          'In-House': TagInhouse,
+          'Unconfirmed': TagUnconfirmed,
+          'Confirmed': TagConfirmed,
+          'No Show': TagNoShow,
+          'Checked-Out': TagCheckedout,
+          'Cancelled': TagCancelled,
+          'Transfer Out': TagTransferOut,
+        };
+        const tagIcon = tagMap[status] || '';
+        return tagIcon ? <img src={tagIcon} alt={status} style={{ height: 22 }} /> : status;
+      },
+    },
+    {
+      title: 'Room/Space Name',
+      dataIndex: 'roomName',
+      key: 'roomName',
+      width: 140,
+    },
+    {
+      title: 'Room/Space Type',
+      dataIndex: 'roomType',
+      key: 'roomType',
+      width: 140,
+    },
+    {
+      title: 'Business Source',
+      dataIndex: 'businessSource',
+      key: 'businessSource',
+      width: 160,
+      render: (value: any, record: any) => (
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span>
+            <span>{value}</span>
+            {record.businessSourceSub && (
+              <span style={{ color: '#888', fontSize: 12, display: 'block' }}>{record.businessSourceSub}</span>
+            )}
+          </span>
+          {record.isLoyalty && (
+            <Tooltip title="Genius">
+              <img src={LoyaltyProgramIcon} alt="Loyalty" style={{ width: 16, height: 16, marginLeft: 2 }} />
+            </Tooltip>
+          )}
+        </span>
+      ),
+    },
+    {
+      title: 'Cancellation Policy',
+      dataIndex: 'cancellationPolicy',
+      key: 'cancellationPolicy',
+      width: 140,
+    },
+    {
+      title: 'Total Amount ($)',
+      dataIndex: 'totalAmount',
+      key: 'totalAmount',
+      width: 120,
+    },
+    {
+      title: 'Amount Paid ($)',
+      dataIndex: 'amountPaid',
+      key: 'amountPaid',
+      width: 120,
+    },
+    {
+      title: 'Balance ($)',
+      dataIndex: 'balance',
+      key: 'balance',
+      width: 120,
+      render: (value: string) => {
+        const num = Number(value);
+        let color = '#222';
+        if (num > 0) color = '#2267E3';
+        if (num < 0) color = '#E34B3E';
+        return <span style={{ color }}>{value}</span>;
+      },
+    },
+    {
+      title: '',
+      key: 'actions',
+      fixed: 'right' as const,
+      width: 64,
+      render: (_: any, record: any) => {
+        const status = record.status;
+        if (disabledStatuses.includes(status)) {
+          return (
+            <Button type="text" icon={<span style={{ fontSize: 20, opacity: 0.4 }}>⋮</span>} aria-label="Actions Disabled" disabled />
+          );
+        }
+        const menu = (
+          <Menu onClick={({ key }) => handleMenuClick(key, record)}>
+            {status === 'In-House' && <Menu.Item key="checkout">Check-Out</Menu.Item>}
+            {(status === 'Unconfirmed' || status === 'Confirmed') && <>
+              <Menu.Item key="checkin">Check-In</Menu.Item>
+              <Menu.Item key="noshow">No-Show Reservation</Menu.Item>
+              <Menu.Item key="transferout">Transfer Out Reservation</Menu.Item>
+              <Menu.Item key="cancel" danger>Cancel Reservation</Menu.Item>
+            </>}
+          </Menu>
+        );
+        return (
+          <Dropdown overlay={menu} trigger={["click"]} placement="bottomRight" arrow>
+            <Button type="text" icon={<span style={{ fontSize: 20 }}>⋮</span>} aria-label="Actions" />
+          </Dropdown>
+        );
+      },
+    },
+  ];
+
+  // --- All Reservations Table Data (Figma-mock) ---
+  const allReservationsData = [
+    {
+      key: '1',
+      resId: '23456723',
+      isGroup: true,
+      checkIn: 'Jan 21, 2025\n03:00 PM',
+      checkOut: 'Jan 27, 2025\n11:00 AM',
+      pocName: 'Catherine Stever',
+      pocEmail: 'catherine@azurefjs...',
+      bookingDate: 'Dec 21, 2024',
+      status: 'In-House',
+      roomName: '101',
+      roomType: 'STD',
+      businessSource: 'ASI WebRes',
+      businessSourceSub: '3783921',
+      isLoyalty: false,
+      cancellationPolicy: 'Non-Refundable',
+      totalAmount: '100.00',
+      amountPaid: '100.00',
+      balance: '0.00',
+    },
+    {
+      key: '2',
+      resId: '27278281',
+      isGroup: true,
+      checkIn: 'Jan 21, 2025\n03:00 PM',
+      checkOut: 'Jan 27 , 2025\n11:00 AM',
+      pocName: 'Daniel Rodriguez',
+      pocEmail: 'daniel@circle.com',
+      bookingDate: 'Dec 21, 2024',
+      status: 'In-House',
+      roomName: '102, 103, 501',
+      roomType: 'DBKS, STD, KNS',
+      businessSource: 'Walk-In',
+      businessSourceSub: '',
+      isLoyalty: false,
+      cancellationPolicy: 'Non-Refundable',
+      totalAmount: '100.00',
+      amountPaid: '100.00',
+      balance: '0.00',
+    },
+    {
+      key: '3',
+      resId: '34567890',
+      checkIn: 'Jan 21, 2025\n03:00 PM',
+      checkOut: 'Jan 26, 2025\n11:00 AM',
+      pocName: 'Emily Chen',
+      pocEmail: 'emily@cloudline.com',
+      bookingDate: 'Dec 20, 2024',
+      status: 'Checked-Out',
+      roomName: 'Main Banquet',
+      roomType: 'Banquet',
+      businessSource: 'Walk-In',
+      businessSourceSub: '',
+      isLoyalty: false,
+      cancellationPolicy: 'Partial Refund',
+      totalAmount: '172.00',
+      amountPaid: '100.00',
+      balance: '72.00',
+    },
+    {
+      key: '4',
+      resId: '45678901',
+      checkIn: 'Jan 21, 2025\n03:00 PM',
+      checkOut: 'Jan 26, 2025\n11:00 AM',
+      pocName: 'Fiona Gallagher',
+      pocEmail: 'fiona@dream.com',
+      bookingDate: 'Jan 03, 2025',
+      status: 'Confirmed',
+      roomName: '205',
+      roomType: 'STD',
+      businessSource: 'Expedia',
+      businessSourceSub: '23456232',
+      isLoyalty: true,
+      cancellationPolicy: '--',
+      totalAmount: '162.00',
+      amountPaid: '100.00',
+      balance: '62.00',
+    },
+    {
+      key: '5',
+      resId: '56789012',
+      checkIn: 'Jan 21, 2025\n03:00 PM',
+      checkOut: 'Jan 28, 2025\n11:00 AM',
+      pocName: 'George Patel',
+      pocEmail: 'george@echo.com',
+      bookingDate: 'Jan 03, 2025',
+      status: 'Unconfirmed',
+      roomName: '310',
+      roomType: 'DBKS',
+      businessSource: 'Booking.com',
+      businessSourceSub: '23456754',
+      isLoyalty: false,
+      cancellationPolicy: '--',
+      totalAmount: '52.00',
+      amountPaid: '100.00',
+      balance: '52.00',
+    },
+    {
+      key: '6',
+      resId: '90123456',
+      checkIn: 'Jan 21, 2025\n03:00 PM',
+      checkOut: 'Jan 20, 2025\n11:00 AM',
+      pocName: 'Kyle Anderson',
+      pocEmail: 'kyle@illum.com',
+      bookingDate: 'Jan 14, 2025',
+      status: 'Transfer Out',
+      roomName: '556',
+      roomType: 'KNS',
+      businessSource: 'Ctrip',
+      businessSourceSub: '1999292',
+      isLoyalty: false,
+      cancellationPolicy: 'Non-Refundable',
+      totalAmount: '42.00',
+      amountPaid: '00.00',
+      balance: '42.00',
+    },
+    {
+      key: '7',
+      resId: '12345678',
+      checkIn: 'Jan 21, 2025\n03:00 PM',
+      checkOut: 'Jan 20, 2025\n11:00 AM',
+      pocName: 'Laura Kim',
+      pocEmail: 'laura@terra.com',
+      bookingDate: 'Jan 15, 2025',
+      status: 'Unconfirmed',
+      roomName: '778',
+      roomType: 'KNS',
+      businessSource: 'Ctrip',
+      businessSourceSub: '3891993',
+      isLoyalty: false,
+      cancellationPolicy: 'Partial Refund',
+      totalAmount: '50.00',
+      amountPaid: '00.00',
+      balance: '50.00',
+    },
+    {
+      key: '8',
+      resId: '33889111',
+      checkIn: 'Jan 21, 2025\n03:00 PM',
+      checkOut: 'Jan 20, 2025\n11:00 AM',
+      pocName: 'Lane Hanli',
+      pocEmail: 'laura@terra.com',
+      bookingDate: 'Jan 15, 2025',
+      status: 'Unconfirmed',
+      roomName: '778',
+      roomType: 'KNS',
+      businessSource: 'Ctrip',
+      businessSourceSub: '2378811',
+      isLoyalty: false,
+      cancellationPolicy: 'Partial Refund',
+      totalAmount: '50.00',
+      amountPaid: '100.00',
+      balance: '-50.00',
+    },
+    {
+      key: '9',
+      resId: '--',
+      holdId: '738929',
+      checkIn: 'Jan 21, 2025\n03:00 PM',
+      checkOut: 'Jan 28, 2025\n11:00 AM',
+      pocName: 'Hannah Lee',
+      pocEmail: 'hanna@fusion.com',
+      bookingDate: 'Jan 13, 2025',
+      status: 'Cancelled',
+      roomName: '--',
+      roomType: 'DBKS',
+      businessSource: 'Walk-In',
+      businessSourceSub: '',
+      isLoyalty: false,
+      cancellationPolicy: 'Non-Refundable',
+      totalAmount: '75.00',
+      amountPaid: '00.00',
+      balance: '75.00',
+    },
+    {
+      key: '10',
+      resId: '--',
+      unposted: true,
+      checkIn: 'Jan 21, 2025\n03:00 PM',
+      checkOut: 'Jan 29, 2025\n11:00 AM',
+      pocName: 'Ibrahim Khan',
+      pocEmail: 'ibrahim@galactic.com',
+      bookingDate: 'Jan 14, 2025',
+      status: 'No Show',
+      roomName: '--',
+      roomType: 'KNS(2), STD(2)',
+      businessSource: 'Ctrip',
+      businessSourceSub: '3883929',
+      isLoyalty: false,
+      cancellationPolicy: 'Non-Refundable',
+      totalAmount: '42.00',
+      amountPaid: '00.00',
+      balance: '42.00',
+    },
+  ];
+
+  const disabledStatuses = ['Checked-Out', 'Cancelled', 'Transfer Out', 'No Show'];
+
+  const handleMenuClick = (action: string, record: any) => {
+    setActiveModal({ type: action, record });
+  };
+
+  const closeModal = () => setActiveModal(null);
+
+  const paginatedData = allReservationsData.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const paginationTotal = allReservationsData.length;
+
+  const modalTitle = (icon: React.ReactNode, text: string) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      {icon}
+      <span style={{ fontWeight: 600, fontSize: 16, color: '#222' }}>{text}</span>
+    </div>
+  );
+  const modalBodyStyle = { fontSize: 14, color: '#222', lineHeight: 1.5, marginTop: 20, marginBottom: 0, fontWeight: 400 };
+  const modalButtonRow = (
+    okText: string,
+    cancelText: string,
+    okProps: React.CSSProperties,
+    cancelProps: React.CSSProperties,
+    onOk: () => void,
+    onCancel: () => void
+  ) => (
+    <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 28 }}>
+      <button type="button" onClick={onCancel} style={{ height: 40, borderRadius: 8, fontSize: 14, fontWeight: 400, background: '#fff', border: '1.5px solid #E0E0E0', color: '#222', minWidth: 120, ...cancelProps }}>{cancelText}</button>
+      <button type="button" onClick={onOk} style={{ height: 40, borderRadius: 8, fontSize: 14, fontWeight: 500, background: okProps.background, color: okProps.color, minWidth: 120, border: 'none', boxShadow: okProps.boxShadow }}>{okText}</button>
+    </div>
+  );
+  const infoIcon = <InfoCircleFilled style={{ color: '#3E4BE0', fontSize: 20, width: 20, height: 20 }} />;
+  const errorIcon = <CloseCircleFilled style={{ color: '#E34B3E', fontSize: 20, width: 20, height: 20 }} />;
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       <Sidebar />
@@ -2289,787 +2788,355 @@ const ManageReservations: React.FC = () => {
         <div className="main-content" style={{ height: '100%', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
           <div className="content-container" style={{ height: '100%', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'auto', padding: 24, background: '#FFFFFF' }}>
             <h1 className="batch-folio-heading" style={{ marginBottom: 24 }}>Manage Reservations</h1>
-              {/* Tabs and global switches in the same row, with full-width bottom border */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 0, borderBottom: '1px solid #E0E0E0', paddingBottom: 0 }}>
-                <Tabs defaultActiveKey="1" items={tabItems} onChange={onTabChange} tabBarStyle={{ borderBottom: 'none', marginBottom: 0 }} />
-                {activeTab !== '3' && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontWeight: 500, fontSize: 16 }}>Rooms</span>
-                      <Switch style={{ marginRight: 8 }} defaultChecked checked={showRooms} onChange={setShowRooms} />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontWeight: 500, fontSize: 16 }}>Spaces</span>
-                      <Switch defaultChecked checked={showSpaces} onChange={setShowSpaces} />
-                    </div>
-                  </div>
-                )}
-              </div>
-            <div style={{ display: 'flex', alignItems: 'flex-end', position: 'relative' }}>
-              {activeTab === '1' && (
-                <div style={{ position: 'relative', width: 400 }}>
+              <Tabs
+                style={{ marginTop: 24 }}
+                defaultActiveKey="1"
+                items={[
+                  {
+                    key: '1',
+                    label: "All Reservations",
+                    children: (
+                      <>
+                        <div className="batch-folio-toolbar">
                   <Input.Search
-                    ref={searchInputRef}
-                    placeholder="Search for res/CRS/Hold ID, POC, room/space name, group"
+                            placeholder="Search for res/CRS/hold ID, POC, room/space name, group"
+                            allowClear
                     enterButton={<SearchOutlined />}
-                    style={{ maxWidth: 400, height: 40 }}
-                    className="batch-folio-toolbar"
-                    value={searchText}
-                    onChange={e => {
-                      const value = e.target.value;
-                      setSearchText(value);
-                      if (activeTab === '1') {
-                        if (value.trim()) {
-                          const lower = value.trim().toLowerCase();
-                          const filtered = data.filter((row, idx) => {
-                            const pocName = row.poc?.props?.children?.[0] || '';
-                            const pocEmail = row.poc?.props?.children?.[2]?.props?.children || '';
-                            let crsId = '';
-                            if (idx > 0) {
-                              const crsIds = ['234567', '345678', '456789', '567890', '678901', '789012'];
-                              crsId = crsIds[idx - 1];
-                            }
-                            const holdId = idx === 3 ? '738929' : '';
-                            const groupName = idx === 1 ? 'group name' : '';
-                            return (
-                              row.resId.toLowerCase().includes(lower) ||
-                              (typeof pocName === 'string' && pocName.toLowerCase().includes(lower)) ||
-                              (typeof pocEmail === 'string' && pocEmail.toLowerCase().includes(lower)) ||
-                              (row.roomName && row.roomName.toLowerCase().includes(lower)) ||
-                              (crsId && crsId.includes(lower)) ||
-                              (holdId && holdId.includes(lower)) ||
-                              (groupName && groupName.includes(lower))
-                            );
-                          });
-                          setFilteredData(filtered);
-                        } else {
-                          setFilteredData(data);
-                        }
-                      }
-                    }}
-                    onSearch={handleSearch}
-                  />
-                </div>
-              )}
-              {activeTab === '2' && (
-                <div style={{ position: 'relative', width: 400 }}>
-                  <Input.Search
-                      placeholder="Search for Hold ID, POC"
-                    enterButton={<SearchOutlined />}
-                    style={{ maxWidth: 400, height: 40 }}
-                    className="batch-folio-toolbar"
-                    value={searchTextCourtesy}
-                    onChange={e => {
-                      const value = e.target.value;
-                      setSearchTextCourtesy(value);
-                    }}
-                    onSearch={value => {
-                      setSearchTextCourtesy(value);
-                    }}
-                  />
-                </div>
-              )}
-                {activeTab === '3' && (
-                  <div style={{ position: 'relative', width: 400 }}>
-                    <Input.Search
-                      placeholder="Search for CRS ID, POC"
-                      enterButton={<SearchOutlined />}
-                      style={{ maxWidth: 400, height: 40 }}
-                      className="batch-folio-toolbar"
-                      value={searchText}
-                      onChange={e => setSearchText(e.target.value)}
-                      onSearch={value => setSearchText(value)}
-                  />
-                </div>
-              )}
-              <div style={{ marginLeft: 'auto', display: 'flex', gap: 16, alignItems: 'center', height: 40 }}>
+                            size="large"
+                            style={{ width: 400, height: 40 }}
+                            aria-label="Search All Reservations"
+                          />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <Button
                   type="default"
-                  style={isAnyFilterActive ? activeButtonStyle : iconButtonStyle}
-                  className="icon-button"
-                  onClick={() => setFilterDrawerOpen(true)}
-                >
-                  <FunnelIcon style={isAnyFilterActive ? activeIconStyle : iconStyle} />
-                </Button>
-                <Dropdown
-                  overlay={<CustomizeColumnsDropdown />}
-                  trigger={["click"]}
-                  open={customizeOpen}
-                  onOpenChange={setCustomizeOpen}
-                  placement="bottomRight"
-                  arrow
-                >
+                              className="batch-folio-toolbar-btn"
+                              icon={<FunnelIcon style={{ width: 24, height: 24 }} />}
+                              aria-label="Filter"
+                            />
                   <Button
                     type="default"
-                    style={(() => {
-                      let columnsState = allReservationsCustomColumns;
-                      if (activeTab === '2') columnsState = courtesyCustomColumnsState;
-                      if (activeTab === '3') columnsState = unpostedCustomColumns;
-                      const anyUnchecked = columnsState.some(col => !col.visible);
-                      return anyUnchecked ? activeButtonStyle : iconButtonStyle;
-                    })()}
-                    className="icon-button"
-                  >
-                    <CustomColumnIcon style={iconStyle} />
-                  </Button>
-                </Dropdown>
+                              className="batch-folio-toolbar-btn"
+                              icon={<CustomColumnIcon style={{ width: 24, height: 24 }} />}
+                              aria-label="Customize Columns"
+                            />
                 <Button
                   type="default"
-                  style={iconButtonStyle}
-                  className="icon-button"
+                              className="batch-folio-toolbar-btn"
+                              icon={<img src={Export2Icon} alt="Export" style={{ width: 24, height: 24 }} />}
                   aria-label="Export"
-                >
-                  <img src={ExportIcon} alt="Export" style={{ width: 24, height: 24, filter: 'invert(0)' }} />
-                </Button>
+                            />
                 <Button
                   type="primary"
-                  style={{
-                    background: '#3E4BE0',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: 8,
-                    height: 40,
-                    minHeight: 40,
-                    minWidth: 120,
-                    padding: '0 20px',
-                    fontWeight: 600,
-                    fontSize: 18,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    boxShadow: '0 2px 8px 0 rgba(62,75,224,0.15)',
-                    cursor: 'pointer',
-                  }}
+                              style={{ height: 40, minHeight: 40, minWidth: 120, borderRadius: 8, fontWeight: 600, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}
+                              aria-label="Actions"
                 >
-                  Actions <span style={{ marginLeft: 4, fontSize: 18 }}>▼</span>
+                              Actions <RightOutlined />
                 </Button>
               </div>
             </div>
-              {/* Unposted Reservations Alert (below search+buttons row) */}
-              {activeTab === '3' && (
-                <div style={{ marginTop: 24, marginBottom: 0, width: '100%' }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'row',
-                      alignItems: 'flex-start',
-                      background: '#F1F6FF',
-                      border: '1px solid #ACC4FD',
-                      borderRadius: 8,
-                      padding: '8px 12px',
-                      width: '100%',
-                      boxSizing: 'border-box',
-                    }}
-                  >
-                    <img src={require('../assets/Icons/circle-info.svg').default} alt="Info" style={{ width: 24, height: 24, marginRight: 8, marginTop: 2, flexShrink: 0, color: '#3E4BE0' }} />
-                    <span style={{ fontWeight: 400, fontSize: 14, color: 'rgba(0,0,0,0.88)', lineHeight: '24px' }}>
-                      Reservations that remain un-posted can be updated by checking the reservation details and confirming the OTA mapping. They may also be cancelled or transferred out from this section.
-                    </span>
-                  </div>
-                </div>
-              )}
             <div style={{ marginTop: 24 }}>
-              {activeTab === '4' ? (
                 <Table
                   rowSelection={rowSelection}
-                  columns={inHouseColumns}
-                  dataSource={inHouseData}
-                  scroll={{ x: 1500, y: 480 }}
+                            columns={allReservationsColumns}
+                            dataSource={paginatedData}
                   pagination={false}
-                  className="custom-table-borders"
+                            scroll={{ x: 'max-content', y: 480 }}
+                            bordered
+                            aria-label="All Reservations Table"
                 />
-              ) : activeTab === '2' ? (
-                <Table
-                  rowSelection={rowSelection}
-                  columns={courtesyColumns}
-                  dataSource={filteredDataCourtesySorted}
-                  scroll={{ x: 1500, y: 480 }}
-                  pagination={false}
-                  className="custom-table-borders"
-                />
-              ) : (
-                <Table
-                  rowSelection={rowSelection}
-                  columns={getTabColumnsArray(activeTab)}
-                  dataSource={
-                    activeTab === '1' ? filteredData :
-                    activeTab === '3' ? sortedUnpostedData :
-                    []
-                  }
-                  scroll={{ x: 1500, y: 480 }}
-                  pagination={false}
-                  className="custom-table-borders"
-                />
-              )}
-            </div>
-            {activeTab === '1' && <div style={{ height: 16 }} />}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '8px 0' }}>
-              <div style={{ flex: 1, textAlign: 'left', color: 'rgba(0,0,0,0.88)', fontSize: 14 }}>
-                  {activeTab === '2' ? 'Total 7 results' : activeTab === '3' ? 'Total 7 results' : `Total ${data.length} results`}
+                          <div style={{ display: 'flex', alignItems: 'center', marginTop: 12, width: '100%' }}>
+                            <div style={{ flex: 1, textAlign: 'left', fontSize: 15, color: '#222' }}>
+                              Total {paginationTotal} results
               </div>
               <div style={{ flex: 2, display: 'flex', justifyContent: 'center' }}>
-                  {activeTab === '1' && (
                 <Pagination
-                  current={current}
-                  total={data.length}
+                                current={currentPage}
                   pageSize={pageSize}
-                  showSizeChanger={false}
-                  onChange={(page) => setCurrent(page)}
-                  style={{ margin: 0 }}
-                />
-                  )}
-              </div>
-              <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
-                  {/* Always show the page size selector, even in Courtesy Holds tab */}
-                <Pagination
-                  pageSize={pageSize}
-                    total={activeTab === '2' ? 7 : activeTab === '3' ? 7 : data.length}
-                  current={current}
+                                total={paginationTotal}
                   showSizeChanger
+                                pageSizeOptions={['10', '20', '50']}
+                                onChange={(page, size) => { setCurrentPage(page); setPageSize(size); }}
                   showQuickJumper={false}
-                  showTotal={undefined}
-                  pageSizeOptions={['10', '20', '30', '40']}
-                  onShowSizeChange={(_, size) => setPageSize(size)}
-                  onChange={(page) => setCurrent(page)}
-                  style={{ minWidth: 120, margin: 0 }}
-                  itemRender={() => null}
+                                aria-label="All Reservations Pagination"
+                                style={{ margin: 0 }}
                 />
               </div>
+                            <div style={{ flex: 1, textAlign: 'right' }}>
+                              {/* The page size selector is part of Pagination, so nothing extra needed here */}
             </div>
-            <Drawer
-              title={
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontWeight: 600, fontSize: 18 }}>Filters</span>
+                </div>
+                          {/* Modals for actions */}
+                          <Modal
+                            open={!!activeModal && activeModal.type === 'checkin'}
+                            title={modalTitle(infoIcon, 'Check-In Guest(s)')}
+                            centered
+                            footer={null}
+                            modalRender={node => <div style={{ borderRadius: 8, padding: 24, background: '#FFF', width: 400, margin: '0 auto' }}>{node}</div>}
+                            onCancel={closeModal}
+                  >
+                            <div style={modalBodyStyle}>
+                              Proceeding will check in all the guests linked to this reservation. Please ensure all pre-check-in requirements are complete.
+                </div>
+                            {modalButtonRow(
+                              'Yes, Check-In',
+                              'No, Cancel',
+                              { background: '#3E4BE0', color: '#fff', boxShadow: '0 2px 8px 0 rgba(62,75,224,0.08)' },
+                              {},
+                              closeModal,
+                              closeModal
+                  )}
+                          </Modal>
+            <Modal
+                            open={!!activeModal && activeModal.type === 'checkout'}
+                            title={modalTitle(infoIcon, 'Check-Out Guest(s)')}
+              centered
+                            footer={null}
+                            modalRender={node => <div style={{ borderRadius: 8, padding: 24, background: '#FFF', width: 400, margin: '0 auto' }}>{node}</div>}
+                            onCancel={closeModal}
+                          >
+                            <div style={modalBodyStyle}>
+                              Proceeding will check out all the guests linked to this reservation. Please ensure all dues are settled and necessary details have been recorded before continuing. This action will update the reservation status to Checked-Out.
+                            </div>
+                            {modalButtonRow(
+                              'Yes, Check-Out',
+                              'No, Cancel',
+                              { background: '#3E4BE0', color: '#fff', boxShadow: '0 2px 8px 0 rgba(62,75,224,0.08)' },
+                              {},
+                              closeModal,
+                              closeModal
+                            )}
+            </Modal>
+            <Modal
+                            open={!!activeModal && activeModal.type === 'transferout'}
+                            title={modalTitle(infoIcon, 'Transfer Out?')}
+              centered
+                            footer={null}
+                            modalRender={node => <div style={{ borderRadius: 8, padding: 24, background: '#FFF', width: 400, margin: '0 auto' }}>{node}</div>}
+                            onCancel={closeModal}
+            >
+                            <div style={modalBodyStyle}>
+                              Proceeding will transfer out this reservation from the property. This action cannot be undone.
+                            </div>
+                            {modalButtonRow(
+                              'Yes, Transfer Out',
+                              'No, Cancel',
+                              { background: '#3E4BE0', color: '#fff', boxShadow: '0 2px 8px 0 rgba(62,75,224,0.08)' },
+                              {},
+                              closeModal,
+                              closeModal
+                            )}
+            </Modal>
+            <Modal
+                            open={!!activeModal && activeModal.type === 'noshow'}
+                            title={modalTitle(infoIcon, 'Mark as No-Show?')}
+              centered
+                            footer={null}
+                            modalRender={node => <div style={{ borderRadius: 8, padding: 24, background: '#FFF', width: 400, margin: '0 auto' }}>{node}</div>}
+                            onCancel={closeModal}
+                          >
+                            <div style={modalBodyStyle}>
+                Proceeding will mark this reservation as a no-show. This action cannot be undone and a new reservation would have to be made if the guest plans to book again.
+                            </div>
+                            {modalButtonRow(
+                              'Yes, Mark as No-Show',
+                              'No, Cancel',
+                              { background: '#3E4BE0', color: '#fff', boxShadow: '0 2px 8px 0 rgba(62,75,224,0.08)' },
+                              {},
+                              closeModal,
+                              closeModal
+                            )}
+            </Modal>
+            <Modal
+                            open={!!activeModal && activeModal.type === 'cancel'}
+                            title={modalTitle(errorIcon, 'Cancel Reservation?')}
+              centered
+                            footer={null}
+                            modalRender={node => <div style={{ borderRadius: 8, padding: 24, background: '#FFF', width: 400, margin: '0 auto' }}>{node}</div>}
+                            onCancel={closeModal}
+            >
+                            <div style={modalBodyStyle}>
+                  Proceeding will cancel this reservation. This action cannot be undone and the inventory blocked will be released.
+                            </div>
+                            {modalButtonRow(
+                              'Yes, Cancel Reservation',
+                              'Close',
+                              { background: '#E34B3E', color: '#fff', boxShadow: '0 2px 8px 0 rgba(227,75,62,0.08)' },
+                              {},
+                              closeModal,
+                              closeModal
+                            )}
+            </Modal>
+                        </div>
+                      </>
+                    )
+                  },
+                  {
+                    key: '2',
+                    label: "Today's Arrivals",
+                    children: (
+                      <>
+                        <div className="batch-folio-toolbar">
+                    <Input.Search
+                            placeholder="Search for Arrivals (e.g. guest name, room, POC)"
+                            allowClear
+                      enterButton={<SearchOutlined />}
+                            size="large"
+                            style={{ width: 400, height: 40 }}
+                            aria-label="Search Today's Arrivals"
+                          />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Button
+                  type="default"
+                              className="batch-folio-toolbar-btn"
+                              icon={<FunnelIcon style={{ width: 24, height: 24 }} />}
+                              aria-label="Filter"
+                            />
                   <Button
                     type="default"
-                    icon={<img src={EraserIcon} alt="Clear All" style={{ width: 18, height: 18, verticalAlign: 'middle', filter: !isAnyFilterActive ? 'opacity(0.45)' : 'opacity(0.88)' }} />}
-                    disabled={!isAnyFilterActive}
-                    onClick={() => {
-                      setPendingFiltersForTab(getFilters());
-                      setFiltersForTab({ dateRange: null, status: [], roomType: [], businessSource: [], loyaltyStatus: [], cancellationPolicy: [] });
-                      setFilteredData(data);
-                    }}
-                    style={{ fontWeight: 500, fontSize: 14, color: isAnyFilterActive ? 'rgba(0,0,0,0.88)' : 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', gap: 8 }}
-                  >
-                    Clear All
-                  </Button>
-                </div>
-              }
-              placement="right"
-              width={360}
-              onClose={() => setFilterDrawerOpen(false)}
-              open={filterDrawerOpen}
-              bodyStyle={{ padding: 24 }}
-              footer={
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-                  <Button type="text" onClick={() => {
-                    if (isAnyFilterActive) {
-                      setShowCancelModal(true);
-                    } else {
-                      setFilterDrawerOpen(false);
-                    }
-                  }} style={{ fontWeight: 500, fontSize: 16 }}>Cancel</Button>
+                              className="batch-folio-toolbar-btn"
+                              icon={<CustomColumnIcon style={{ width: 24, height: 24 }} />}
+                              aria-label="Customize Columns"
+                            />
+                <Button
+                  type="default"
+                              className="batch-folio-toolbar-btn"
+                              icon={<img src={Export2Icon} alt="Export" style={{ width: 24, height: 24 }} />}
+                  aria-label="Export"
+                            />
+                <Button
+                  type="primary"
+                              style={{ height: 40, minHeight: 40, minWidth: 120, borderRadius: 8, fontWeight: 600, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}
+                              aria-label="Actions"
+                            >
+                              Actions <RightOutlined />
+                </Button>
+              </div>
+            </div>
+            <div style={{ marginTop: 24 }}>
+                <Table
+                            columns={tableColumns}
+                            dataSource={tableData}
+                  pagination={false}
+                            scroll={{ x: 'max-content' }}
+                            bordered
+                            aria-label="Today's Arrivals Table"
+                          />
+            </div>
+                      </>
+                    )
+                  },
+                  {
+                    key: '3',
+                    label: "In-House",
+                    children: (
+                      <>
+                        <div className="batch-folio-toolbar">
+                          <Input.Search
+                            placeholder="Search for In-House guests (e.g. guest name, room, POC)"
+                            allowClear
+                            enterButton={<SearchOutlined />}
+                            size="large"
+                            style={{ width: 400, height: 40 }}
+                            aria-label="Search In-House"
+                          />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <Button
+                              type="default"
+                              className="batch-folio-toolbar-btn"
+                              icon={<FunnelIcon style={{ width: 24, height: 24 }} />}
+                              aria-label="Filter"
+                            />
+                  <Button
+                    type="default"
+                              className="batch-folio-toolbar-btn"
+                              icon={<CustomColumnIcon style={{ width: 24, height: 24 }} />}
+                              aria-label="Customize Columns"
+                            />
+                            <Button
+                              type="default"
+                              className="batch-folio-toolbar-btn"
+                              icon={<img src={Export2Icon} alt="Export" style={{ width: 24, height: 24 }} />}
+                              aria-label="Export"
+                            />
                   <Button
                     type="primary"
-                    disabled={!isAnyFilterActive}
-                    style={{ fontWeight: 500, fontSize: 16 }}
-                    onClick={() => {
-                      setFiltersForTab(getPendingFilters());
-                      if (activeTab === '1') {
-                        let filtered = updatedData;
-                        // 1. Check-In - Check-Out Dates (AND logic)
-                        if (pendingFiltersAll.dateRange) {
-                          const [start, end] = pendingFiltersAll.dateRange;
-                        filtered = filtered.filter(row => {
-                          const checkInDate = row.checkIn.split('\n')[0];
-                            const checkOutDate = row.checkOut.split('\n')[0];
-                          const checkInDayjs = dayjs(checkInDate);
-                            const checkOutDayjs = dayjs(checkOutDate);
-                          return (
-                            checkInDayjs.isSameOrAfter(start, 'day') &&
-                              checkOutDayjs.isSameOrBefore(end, 'day')
-                          );
-                        });
-                      }
-                        // 2. Status (AND logic)
-                        if (pendingFiltersAll.status.length) {
-                          // Map status filter values to the tag SVGs used in the table
-                          const statusToTag = {
-                            'In-House': 'TagInhouse.svg',
-                            'Cancelled': 'TagCancelled.svg',
-                            'No Show': 'TagNo-Show.svg',
-                            'Checked-Out': 'TagCheckedout.svg',
-                            'Unconfirmed': 'TagUnconfirmed.svg',
-                            'Confirmed': 'TagConfirmed.svg',
-                            'Transfer Out': 'TagTransfer Out.svg',
-                          };
-                        filtered = filtered.filter(row => {
-                            let tagFile = '';
-                            // Determine which tag SVG is rendered for this row
-                            if (row.reservation && row.reservation.type === 'img' && row.reservation.props && row.reservation.props.src) {
-                              // If reservation is an <img> (shouldn't be, but fallback)
-                              tagFile = row.reservation.props.src.split('/').pop();
-                            } else if (row.reservation?.props?.children) {
-                              // The render logic in the Status column uses Tag SVGs based on status string
-                              let status = '';
-                              const children = row.reservation.props.children;
-                              if (Array.isArray(children)) {
-                                status = children.find(child => typeof child === 'string' && child.trim() && !/^[\u1F300-\u1F6FF\u2600-\u26FF\u2700-\u27BF]+$/.test(child.trim()));
-                                if (!status && children.length > 1 && typeof children[1] === 'string') {
-                                  status = children[1];
-                                }
-                              } else if (typeof children === 'string') {
-                                status = children;
-                              }
-                              status = status.trim();
-                              // Map status string to tag SVG filename
-                              if (status.toLowerCase().includes('in-house')) tagFile = 'TagInhouse.svg';
-                              else if (status.toLowerCase().includes('cancelled')) tagFile = 'TagCancelled.svg';
-                              else if (status.toLowerCase().includes('no show')) tagFile = 'TagNo-Show.svg';
-                              else if (status.toLowerCase().includes('checked-out')) tagFile = 'TagCheckedout.svg';
-                              else if (status.toLowerCase().includes('unconfirmed')) tagFile = 'TagUnconfirmed.svg';
-                              else if (status.toLowerCase().includes('confirmed')) tagFile = 'TagConfirmed.svg';
-                              else if (status.toLowerCase().includes('transfer out')) tagFile = 'TagTransfer Out.svg';
-                            }
-                            // Now, check if any selected status maps to this tagFile
-                            return pendingFiltersAll.status.some((selectedStatus: string) => statusToTag[selectedStatus as keyof typeof statusToTag] === tagFile);
-                          });
-                        }
-                        // 3. Room/Space Type (AND logic)
-                        if (pendingFiltersAll.roomType.length) {
-                          filtered = filtered.filter(row => pendingFiltersAll.roomType.includes(row.roomType));
-                        }
-                        // 4. Business Source (AND logic)
-                        if (pendingFiltersAll.businessSource.length) {
-                        filtered = filtered.filter(row => {
-                          let bs = row.businessSource;
-                            if (typeof bs === 'object' && bs !== null && 'props' in bs) bs = bs.props?.children?.[0] || '';
-                            if (typeof bs !== 'string') bs = '';
-                            return pendingFiltersAll.businessSource.includes(bs);
-                          });
-                        }
-                        // 5. Cancellation Policy (AND logic)
-                        if ((pendingFiltersAll.cancellationPolicy || []).length) {
-                          filtered = filtered.filter(row => pendingFiltersAll.cancellationPolicy.includes(row.cancellationPolicy));
-                        }
-                        setFilteredAllReservationsData(filtered);
-                      } else if (activeTab === '2') {
-                        let filtered = courtesyDataRaw;
-                        // 1. Date Range
-                        if (pendingFiltersCourtesy.dateRange) {
-                          const [start, end] = pendingFiltersCourtesy.dateRange;
-                        filtered = filtered.filter(row => {
-                            const checkInDate = row.checkIn.split('\n')[0];
-                            const checkInDayjs = dayjs(checkInDate);
-                            return (
-                              checkInDayjs.isSameOrAfter(start, 'day') &&
-                              checkInDayjs.isSameOrBefore(end, 'day')
-                            );
-                          });
-                        }
-                        // 2. Status (AND logic, match by tag SVG)
-                        if (pendingFiltersCourtesy.status.length) {
-                          const statusToTag = {
-                            'Unconfirmed': 'TagUnconfirmed.svg',
-                            'Confirmed': 'TagConfirmed.svg',
-                          };
-                          filtered = filtered.filter(row => {
-                            let tagFile = '';
-                            // Extract the tag SVG filename from the reservation field
-                            if (row.reservation && typeof row.reservation === 'object' && row.reservation.props && row.reservation.props.children) {
-                              const children = row.reservation.props.children;
-                              if (Array.isArray(children) && children[0]?.props?.src) {
-                                const src = children[0].props.src;
-                                tagFile = typeof src === 'string' ? src.split('/').pop() || '' : '';
-                              }
-                            }
-                            return pendingFiltersCourtesy.status.some((selectedStatus: string) => statusToTag[selectedStatus as keyof typeof statusToTag] === tagFile);
-                          });
-                        }
-                        // 3. Room Type
-                        if (pendingFiltersCourtesy.roomType.length) {
-                          filtered = filtered.filter(row => pendingFiltersCourtesy.roomType.includes(row.roomType));
-                        }
-                        // 4. Business Source (AND logic)
-                        if (pendingFiltersCourtesy.businessSource.length) {
-                          filtered = filtered.filter(row => {
-                            let bs: any = row.businessSource;
-                            if (typeof bs === 'object' && bs !== null && 'props' in bs) bs = bs.props?.children?.[0] || '';
-                            return pendingFiltersCourtesy.businessSource.some((s: any) => typeof bs === 'string' && bs.toLowerCase().includes(s.toLowerCase()));
-                          });
-                        }
-                        // 5. Cancellation Policy (AND logic)
-                        if ((pendingFiltersCourtesy.cancellationPolicy || []).length) {
-                          filtered = filtered.filter(row => pendingFiltersCourtesy.cancellationPolicy.includes(row.cancellationPolicy));
-                        }
-                        setFilteredCourtesyData(filtered);
-                      } else if (activeTab === '3') {
-                        let filtered = data.slice(0, 7);
-                        if (pendingFiltersUnposted.dateRange) {
-                          const [start, end] = pendingFiltersUnposted.dateRange;
-                          filtered = filtered.filter(row => {
-                            const checkInDate = row.checkIn.split('\n')[0];
-                            const checkInDayjs = dayjs(checkInDate);
-                            return (
-                              checkInDayjs.isSameOrAfter(start, 'day') &&
-                              checkInDayjs.isSameOrBefore(end, 'day')
-                            );
-                          });
-                        }
-                        if (pendingFiltersUnposted.status.length) {
-                          filtered = filtered.filter(row => {
-                            const status = (row.reservation?.props?.children || '').toString();
-                            return pendingFiltersUnposted.status.some((s: any) => typeof status === 'string' && status.toLowerCase().includes(s.toLowerCase()));
-                          });
-                        }
-                        if (pendingFiltersUnposted.roomType.length) {
-                          filtered = filtered.filter(row => pendingFiltersUnposted.roomType.includes(row.roomType));
-                        }
-                        if (pendingFiltersUnposted.businessSource.length) {
-                          filtered = filtered.filter(row => {
-                            let bs: any = row.businessSource;
-                            if (typeof bs === 'object' && bs !== null && 'props' in bs) bs = bs.props?.children?.[0] || '';
-                            return pendingFiltersUnposted.businessSource.some((s: any) => typeof bs === 'string' && bs.toLowerCase().includes(s.toLowerCase()));
-                          });
-                        }
-                        if ((pendingFiltersUnposted.cancellationPolicy || []).length) {
-                        filtered = filtered.filter(row =>
-                            (pendingFiltersUnposted.cancellationPolicy as any).some((s: any) => (pendingFiltersUnposted.cancellationPolicy || []).includes(row.cancellationPolicy))
-                        );
-                      }
-                        setFilteredDataUnposted(filtered);
-                      }
-                      setFilterDrawerOpen(false);
-                    }}
-                  >
-                    {`Show ${isAnyFilterActive ? (
-                      activeTab === '1'
-                        ? (pendingFiltersAll.loyaltyStatus && pendingFiltersAll.loyaltyStatus.length
-                          ? updatedData.filter(row => typeof row.businessSource === 'object' && row.businessSource !== null && 'props' in row.businessSource && Array.isArray(row.businessSource.props.children) && row.businessSource.props.children.some((child: any) => child && child.props && child.props.src && typeof child.props.src === 'string' && child.props.src.includes('loyaltyprogram.svg'))).length
-                          : getFilteredCount())
-                        : activeTab === '2'
-                          ? (() => {
-                              let filtered = courtesyDataRaw;
-                              if (pendingFiltersCourtesy.dateRange) {
-                                const [start, end] = pendingFiltersCourtesy.dateRange;
-                                filtered = filtered.filter(row => {
-                                  const checkInDate = row.checkIn.split('\n')[0];
-                                  const checkInDayjs = dayjs(checkInDate);
-                                  return (
-                                    checkInDayjs.isSameOrAfter(start, 'day') &&
-                                    checkInDayjs.isSameOrBefore(end, 'day')
-                                  );
-                                });
-                              }
-                              if (pendingFiltersCourtesy.status.length) {
-                                const statusToTag = {
-                                  'Unconfirmed': 'TagUnconfirmed.svg',
-                                  'Confirmed': 'TagConfirmed.svg',
-                                };
-                                filtered = filtered.filter(row => {
-                                  let tagFile = '';
-                                  if (row.reservation && typeof row.reservation === 'object' && row.reservation.props && row.reservation.props.children) {
-                                    const children = row.reservation.props.children;
-                                    if (Array.isArray(children) && children[0]?.props?.src) {
-                                      const src = children[0].props.src;
-                                      tagFile = typeof src === 'string' ? src.split('/').pop() || '' : '';
-                                    }
-                                  }
-                                  return pendingFiltersCourtesy.status.some((selectedStatus: string) => statusToTag[selectedStatus as keyof typeof statusToTag] === tagFile);
-                                });
-                              }
-                              if (pendingFiltersCourtesy.roomType.length) {
-                                filtered = filtered.filter(row => pendingFiltersCourtesy.roomType.includes(row.roomType));
-                              }
-                              if (pendingFiltersCourtesy.businessSource.length) {
-                                filtered = filtered.filter(row => {
-                                  let bs: any = row.businessSource;
-                                  if (typeof bs === 'object' && bs !== null && 'props' in bs) bs = bs.props?.children?.[0] || '';
-                                  return pendingFiltersCourtesy.businessSource.some((s: any) => typeof bs === 'string' && bs.toLowerCase().includes(s.toLowerCase()));
-                                });
-                              }
-                              if ((pendingFiltersCourtesy.cancellationPolicy || []).length) {
-                                filtered = filtered.filter(row => pendingFiltersCourtesy.cancellationPolicy.includes(row.cancellationPolicy));
-                              }
-                              return filtered.length;
-                            })()
-                          : activeTab === '3'
-                            ? (() => {
-                                let filtered = data.slice(0, 7);
-                                if (pendingFiltersUnposted.dateRange) {
-                                  const [start, end] = pendingFiltersUnposted.dateRange;
-                                  filtered = filtered.filter(row => {
-                                    const checkInDate = row.checkIn.split('\n')[0];
-                                    const checkInDayjs = dayjs(checkInDate);
-                                    return (
-                                      checkInDayjs.isSameOrAfter(start, 'day') &&
-                                      checkInDayjs.isSameOrBefore(end, 'day')
-                                    );
-                                  });
-                                }
-                                if (pendingFiltersUnposted.status.length) {
-                                  filtered = filtered.filter(row => {
-                                    const status = (row.reservation?.props?.children || '').toString();
-                                    return pendingFiltersUnposted.status.some((s: any) => typeof status === 'string' && status.toLowerCase().includes(s.toLowerCase()));
-                                  });
-                                }
-                                if (pendingFiltersUnposted.roomType.length) {
-                                  filtered = filtered.filter(row => pendingFiltersUnposted.roomType.includes(row.roomType));
-                                }
-                                if (pendingFiltersUnposted.businessSource.length) {
-                                  filtered = filtered.filter(row => {
-                                    let bs: any = row.businessSource;
-                                    if (typeof bs === 'object' && bs !== null && 'props' in bs) bs = bs.props?.children?.[0] || '';
-                                    return pendingFiltersUnposted.businessSource.some((s: any) => typeof bs === 'string' && bs.toLowerCase().includes(s.toLowerCase()));
-                                  });
-                                }
-                                if ((pendingFiltersUnposted.cancellationPolicy || []).length) {
-                                  filtered = filtered.filter(row =>
-                                    (pendingFiltersUnposted.cancellationPolicy as any).some((s: any) => (pendingFiltersUnposted.cancellationPolicy || []).includes(row.cancellationPolicy))
-                                  );
-                                }
-                                return filtered.length;
-                              })()
-                            : 0
-                      ) : 0} Results`}
+                              style={{ height: 40, minHeight: 40, minWidth: 120, borderRadius: 8, fontWeight: 600, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}
+                              aria-label="Actions"
+                            >
+                              Actions <RightOutlined />
                   </Button>
                 </div>
-              }
-            >
-              <Form layout="vertical">
-                <Form.Item label="Check-In - Check-Out Dates" style={{ marginBottom: 16 }}>
-                  <DatePicker.RangePicker
-                    value={activeTab === '2' ? pendingFiltersCourtesy.dateRange : pendingFiltersAll.dateRange}
-                    onChange={val => setPendingFiltersForTab((f: any) => ({ ...f, dateRange: val as [Dayjs, Dayjs] | null }))}
-                    style={{ width: '100%' }}
+                        </div>
+                        <div style={{ marginTop: 24 }}>
+                          <Table
+                            columns={tableColumns}
+                            dataSource={tableData}
+                            pagination={false}
+                            scroll={{ x: 'max-content' }}
+                            bordered
+                            aria-label="In-House Table"
+                          />
+                        </div>
+                      </>
+                    )
+                  },
+                  {
+                    key: '4',
+                    label: "Today's Pending Check-Out",
+                    children: (
+                      <>
+                        <div className="batch-folio-toolbar">
+                          <Input.Search
+                            placeholder="Search for Pending Check-Outs (e.g. guest name, room, POC)"
                     allowClear
-                  />
-                </Form.Item>
-                  {activeTab !== '3' && (
-                <Form.Item label="Status" style={{ marginBottom: 16 }}>
-                  <Select
-                    mode="multiple"
-                    value={activeTab === '2' ? pendingFiltersCourtesy.status : pendingFiltersAll.status}
-                    onChange={val => setPendingFiltersForTab((f: any) => ({ ...f, status: val }))}
-                    options={activeTab === '2' ? courtesyStatusOptions : statusOptions}
-                    style={{ width: '100%' }}
-                    placeholder="Select status"
-                    allowClear
-                  />
-                </Form.Item>
-                  )}
-                  {activeTab !== '2' && activeTab !== '3' && (
-                <Form.Item label="Room/Space Type" style={{ marginBottom: 16 }}>
-                  <Select
-                    mode="multiple"
-                    value={pendingFiltersAll.roomType}
-                    onChange={val => setPendingFiltersForTab((f: any) => ({ ...f, roomType: val }))}
-                    options={roomTypeOptions}
-                    style={{ width: '100%' }}
-                    placeholder="Select room/space type"
-                    allowClear
-                  />
-                </Form.Item>
-                  )}
-                <Form.Item label="Business Source" style={{ marginBottom: 16 }}>
-                  <Select
-                    mode="multiple"
-                    value={activeTab === '2' ? pendingFiltersCourtesy.businessSource : activeTab === '3' ? pendingFiltersUnposted.businessSource : pendingFiltersAll.businessSource}
-                    onChange={val => setPendingFiltersForTab((f: any) => ({ ...f, businessSource: val }))}
-                    options={activeTab === '2' ? businessSourceOptionsCourtesy : activeTab === '3' ? businessSourceOptionsUnposted : businessSourceOptions}
-                    style={{ width: '100%' }}
-                    placeholder="Select business source"
-                    allowClear
-                  />
-                </Form.Item>
-                  {activeTab !== '3' && (
-                <Form.Item label="Cancellation Policy" style={{ marginTop: 16, marginBottom: 0 }}>
-                  <Select
-                    mode="multiple"
-                    value={activeTab === '2' ? pendingFiltersCourtesy.cancellationPolicy : pendingFiltersAll.cancellationPolicy || []}
-                    onChange={val => setPendingFiltersForTab((f: any) => ({ ...f, cancellationPolicy: val }))}
-                    options={cancellationPolicyOptions}
-                    style={{ width: '100%' }}
-                    placeholder="Select cancellation policy"
-                    allowClear
-                  />
-                </Form.Item>
-                  )}
-                  {activeTab === '1' && (
-                <Form.Item label="Loyalty Program" style={{ marginBottom: 16, marginTop: 16 }}>
-                  <Select
-                    mode="multiple"
-                    value={pendingFiltersAll.loyaltyStatus}
-                    onChange={val => setPendingFiltersForTab((f: any) => ({ ...f, loyaltyStatus: val }))}
-                    options={loyaltyStatusOptions}
-                    style={{ width: '100%' }}
-                    placeholder="Select loyalty program"
-                    allowClear
-                  />
-                </Form.Item>
-                  )}
-              </Form>
-            </Drawer>
-            <Modal
-              open={showCancelModal}
-              title={
-                <span style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                  <InfoCircleFilled style={{ color: '#3E4BE0', fontSize: 20, marginTop: 2 }} />
-                  <span>Cancel Reservation Filtration?</span>
-                </span>
-              }
-              onCancel={() => setShowCancelModal(false)}
-              centered
-              footer={[
-                <Button key="no" onClick={() => setShowCancelModal(false)}>
-                  No, Keep Editing
-                </Button>,
-                <Button key="yes" type="primary" style={{ background: '#3E4BE0', borderColor: '#3E4BE0' }} onClick={() => {
-                  setPendingFiltersForTab(getFilters());
-                  setFiltersForTab({ dateRange: null, status: [], roomType: [], businessSource: [], loyaltyStatus: [], cancellationPolicy: [] });
-                  setFilteredData(data);
-                  setShowCancelModal(false);
-                  setFilterDrawerOpen(false);
-                }}>
-                  Yes, Cancel
+                            enterButton={<SearchOutlined />}
+                            size="large"
+                            style={{ width: 400, height: 40 }}
+                            aria-label="Search Today's Pending Check-Out"
+                          />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <Button
+                              type="default"
+                              className="batch-folio-toolbar-btn"
+                              icon={<FunnelIcon style={{ width: 24, height: 24 }} />}
+                              aria-label="Filter"
+                            />
+                            <Button
+                              type="default"
+                              className="batch-folio-toolbar-btn"
+                              icon={<CustomColumnIcon style={{ width: 24, height: 24 }} />}
+                              aria-label="Customize Columns"
+                            />
+                            <Button
+                              type="default"
+                              className="batch-folio-toolbar-btn"
+                              icon={<img src={Export2Icon} alt="Export" style={{ width: 24, height: 24 }} />}
+                              aria-label="Export"
+                            />
+                            <Button
+                              type="primary"
+                              style={{ height: 40, minHeight: 40, minWidth: 120, borderRadius: 8, fontWeight: 600, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}
+                              aria-label="Actions"
+                            >
+                              Actions <RightOutlined />
                 </Button>
-              ]}
-            >
-              Proceeding will erase newly entered data, and you will need to start over.
-            </Modal>
-            <Modal
-              open={showCheckInModal}
-                title={
-                  <span style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                    <InfoCircleFilled style={{ color: '#3E4BE0', fontSize: 20, marginTop: 2 }} />
-                    <span>Check-In Guest(s?)</span>
-                  </span>
-                }
-              centered
-                onCancel={() => { setShowCheckInModal(false); }}
-              footer={[
-                  <Button key="no" onClick={() => { setShowCheckInModal(false); }}>No, Cancel</Button>,
-                  <Button key="yes" type="primary" onClick={() => { setShowCheckInModal(false); }}>Yes, Check-In</Button>
-              ]}
-            >
-              <span style={{ display: 'block', marginLeft: 28 }}>
-                Proceeding will check in all the guests linked to this reservation. Please ensure all pre-check-in requirements are complete.
-              </span>
-            </Modal>
-            <Modal
-              open={!!activeActionModal && activeActionModal.type === 'noshow'}
-              title={
-                <span style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                  <InfoCircleFilled style={{ color: '#3E4BE0', fontSize: 20, marginTop: 2 }} />
-                  <span>Mark as No-Show?</span>
-                </span>
-              }
-              centered
-              onCancel={() => setActiveActionModal(null)}
-              footer={[
-                <Button key="no" onClick={() => setActiveActionModal(null)}>No, Cancel</Button>,
-                <Button key="yes" type="primary" onClick={() => setActiveActionModal(null)}>Yes, Mark as No-Show</Button>,
-              ]}
-            >
-              <span style={{ display: 'block', marginLeft: 28 }}>
-                Proceeding will mark this reservation as a no-show. This action cannot be undone and a new reservation would have to be made if the guest plans to book again.
-              </span>
-            </Modal>
-            <Modal
-              open={!!activeActionModal && activeActionModal.type === 'cancel'}
-              title={
-                <span style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                  <CancelModalIcon style={{ fontSize: 20, marginTop: 2 }} />
-                  <span>Cancel Reservation?</span>
-                </span>
-              }
-              centered
-              onCancel={() => setActiveActionModal(null)}
-              footer={[
-                <Button key="close" onClick={() => setActiveActionModal(null)}>Close</Button>,
-                <Button key="yes" type="primary" danger onClick={() => setActiveActionModal(null)}>Yes, Cancel Reservation</Button>,
-              ]}
-            >
-              <span style={{ display: 'block', marginLeft: 28 }}>
-                  Proceeding will cancel this reservation. This action cannot be undone and the inventory blocked will be released.
-              </span>
-            </Modal>
-            <Modal
-              open={!!activeActionModal && activeActionModal.type === 'transferout'}
-              title={
-                <span style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                  <InfoCircleFilled style={{ color: '#3E4BE0', fontSize: 20, marginTop: 2 }} />
-                  <span>Transfer Out?</span>
-                </span>
-              }
-              centered
-              onCancel={() => setActiveActionModal(null)}
-              footer={[
-                <Button key="no" onClick={() => setActiveActionModal(null)}>No, Cancel</Button>,
-                <Button key="yes" type="primary" onClick={() => setActiveActionModal(null)}>Yes, Transfer Out</Button>,
-              ]}
-            >
-              <span style={{ display: 'block', marginLeft: 28 }}>
-                Proceeding will transfer out this reservation from the property. This action cannot be undone.
-              </span>
-            </Modal>
-            <Modal
-              open={!!activeActionModal && activeActionModal.type === 'checkout'}
-              title={
-                <span style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                  <InfoCircleFilled style={{ color: '#3E4BE0', fontSize: 20, marginTop: 2 }} />
-                  <span>Check-Out Guest(s)?</span>
-                </span>
-              }
-              centered
-              onCancel={() => setActiveActionModal(null)}
-              footer={[
-                <Button key="no" onClick={() => setActiveActionModal(null)}>No, Cancel</Button>,
-                <Button key="yes" type="primary" onClick={() => setActiveActionModal(null)}>Yes, Check-Out</Button>,
-              ]}
-            >
-              <span style={{ display: 'block', marginLeft: 28 }}>
-                Proceeding will check out all the guests linked to this reservation. Please note that this reservation has pending dues. This action will update the reservation status to Checked-Out.
-              </span>
-            </Modal>
-              <Modal
-                open={!!activeActionModal && activeActionModal.type === 'convert'}
-                title={
-                  <span style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                    <InfoCircleFilled style={{ color: '#3E4BE0', fontSize: 20, marginTop: 2 }} />
-                    <span>Convert to Reservation?</span>
-                  </span>
-                }
-                centered
-                onCancel={() => setActiveActionModal(null)}
-                footer={[
-                  <Button key="no" onClick={() => setActiveActionModal(null)}>No, Cancel</Button>,
-                  <Button key="yes" type="primary" onClick={() => setActiveActionModal(null)}>Yes, Convert to Reservation</Button>,
+                          </div>
+                        </div>
+                        <div style={{ marginTop: 24 }}>
+                          <Table
+                            columns={tableColumns}
+                            dataSource={tableData}
+                            pagination={false}
+                            scroll={{ x: 'max-content' }}
+                            bordered
+                            aria-label="Today's Pending Check-Out Table"
+                          />
+                        </div>
+                      </>
+                    )
+                  },
                 ]}
-              >
-                <span style={{ display: 'block', marginLeft: 28 }}>
-                  Proceeding will convert this courtesy hold into a confirmed reservation. This action cannot be undone and the guest will receive a confirmation email and standard cancellation policies will apply.
-                </span>
-              </Modal>
-              <Modal
-                open={!!activeActionModal && activeActionModal.type === 'cancel_courtesy'}
-                title={
-                  <span style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                    <CancelModalIcon style={{ fontSize: 20, marginTop: 2 }} />
-                    <span>Cancel Courtesy Hold?</span>
-                  </span>
-                }
-                centered
-                onCancel={() => setActiveActionModal(null)}
-                footer={[
-                  <Button key="close" onClick={() => setActiveActionModal(null)}>Close</Button>,
-                  <Button key="yes" type="primary" danger onClick={() => setActiveActionModal(null)}>Yes, Cancel Courtesy Hold</Button>,
-                ]}
-              >
-                <span style={{ display: 'block', marginLeft: 28 }}>
-                  Proceeding will cancel this courtesy hold. This action cannot be undone and the inventory blocked will be released.
-              </span>
-            </Modal>
+              />
             </div>
           </div>
         </div>
